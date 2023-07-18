@@ -7,6 +7,7 @@ import { NotFound } from './Components/NotFound'
 import { AddProducts } from './Components/AddProducts'
 import { Cart } from './Components/Cart'
 import AddCarousal from './Components/AddCarousal'
+import AdminPanel from './Components/AdminPanel'
 
 export const App = () => {
   return (
@@ -17,6 +18,7 @@ export const App = () => {
         <Route path="/login" component={Login}/>
         <Route path="/add-products" component={AddProducts}/>
         <Route path="/addcarousal" component={AddCarousal}/>
+        <Route path="/admin" component={AdminPanel}/>
         <Route path="/cart" component={Cart}/>       
         <Route component={NotFound}/>        
       </Switch>

@@ -8,16 +8,52 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 
 const RootContainer = styled("div")({
   display: "flex",
-  flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  height: "100vh",
+  minHeight: "100vh",
+});
+
+const Container = styled("div")({
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "center",
+  gap: "20px",
+  width: "80%",
+  position: "relative", // Add this line to the Container
 });
 
 const UploadContainer = styled("div")({
   display: "flex",
   alignItems: "center",
   gap: "10px",
+});
+
+const AddContainer = styled("div")({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "flex-start", // Align items at the top
+  flex: "1 0 100%", // Take up 50% of the available width
+  maxWidth: "calc(60% - 20px)", // Limit the width of the container
+});
+
+const DeleteContainer = styled("div")({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "flex-start", // Align items at the top
+  flex: "1 0 50%", // Take up 50% of the available width
+  maxWidth: "calc(100% - 20px)", // Limit the width of the container
+});
+
+const Line = styled("div")({
+  width: "2px",
+  height: "100%",
+  backgroundColor: "#ccc",
+  position: "absolute",
+  top: 0,
+  left: "50%",
+  transform: "translateX(-50%)",
 });
 
 const Input = styled("input")({
@@ -53,6 +89,8 @@ function AddCarousal() {
   const [imagesList, setImagesList] = useState([]);
   const [selectedImage, setSelectedImage] = useState("");
   const [selectedImageUrl, setSelectedImageUrl] = useState("");
+  const [selectedDeleteImage, setSelectedDeleteImage] = useState("");
+  const [selectedDeleteImageUrl, setSelectedDeleteImageUrl] = useState("");
 
   useEffect(() => {
     const fetchImagesList = async () => {
@@ -74,7 +112,19 @@ function AddCarousal() {
   }, []);
 
   const handleImageChange = (e) => {
-    setImage(e.target.files[0]);
+    const selectedFile = e.target.files[0];
+    setImage(selectedFile);
+
+    if (selectedFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSelectedImageUrl(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
+    } else {
+      setSelectedImageUrl("");
+    }
+
     console.log("Image is selected");
   };
 
@@ -130,63 +180,102 @@ function AddCarousal() {
       });
   };
 
-  const handleCancelSelection = () => {
+  const handleCancelAddImage = () => {
+    setImage(null);
     setSelectedImage("");
     setSelectedImageUrl("");
   };
 
+  const handleCancelDeleteImage = () => {
+    setSelectedImage("");
+    setSelectedDeleteImage("");
+    setSelectedDeleteImageUrl("");
+  };
+
   return (
     <RootContainer>
-      <Typography variant="h5">Add Image to Carousel</Typography>
-      <UploadContainer>
-        <Input type="file" id="upload-input" onChange={handleImageChange} />
-        <label htmlFor="upload-input">
-          <ButtonStyled
-            variant="contained"
-            component="span"
-            startIcon={<IconStyled />}
+      <Container>
+        <AddContainer>
+          <Typography variant="h5">Add Image</Typography>
+          <UploadContainer>
+            <Input type="file" id="upload-input" onChange={handleImageChange} />
+            <label htmlFor="upload-input">
+              <ButtonStyled
+                variant="contained"
+                component="span"
+                startIcon={<IconStyled />}
+              >
+                Select Image
+              </ButtonStyled>
+            </label>
+            <Typography variant="body2">
+              {image ? image.name : "No image selected"}
+            </Typography>
+          </UploadContainer>
+          <ImagePreview
+            style={{ backgroundImage: `url(${selectedImageUrl})` }}
+            selected={selectedImage !== ""}
+          />
+          {image && (
+            <ButtonStyled variant="contained" onClick={handleAddImage}>
+              Upload Image
+            </ButtonStyled>
+          )}
+          {image && (
+            <ButtonStyled variant="contained" onClick={handleCancelAddImage}>
+              Cancel
+            </ButtonStyled>
+          )}
+        </AddContainer>
+        <Line />
+        <DeleteContainer>
+          <Typography variant="h6">Delete Image</Typography>
+          <Select
+            value={selectedDeleteImage}
+            onChange={(e) => {
+              const imageName = e.target.value;
+              setSelectedDeleteImage(imageName);
+              const imageUrl = storage.ref(`carousel-images/${imageName}`);
+              imageUrl
+                .getDownloadURL()
+                .then((url) => {
+                  setSelectedDeleteImageUrl(url);
+                })
+                .catch((error) => {
+                  console.error("Error retrieving image URL:", error);
+                  setSelectedDeleteImageUrl("");
+                });
+            }}
           >
-            Select Image
-          </ButtonStyled>
-        </label>
-        <Typography variant="body2">
-          {image ? image.name : "No image selected"}
-        </Typography>
-      </UploadContainer>
-      <ButtonStyled
-        variant="contained"
-        onClick={handleAddImage}
-        disabled={!image}
-      >
-        Upload Image
-      </ButtonStyled>
-      <Typography variant="h6">Delete Image</Typography>
-      <Select
-        value={selectedImage}
-        onChange={(e) => handleImageSelect(e.target.value)}
-      >
-        {imagesList.map((imageName) => (
-          <MenuItem key={imageName} value={imageName}>
-            {imageName}
-          </MenuItem>
-        ))}
-      </Select>
-      {selectedImageUrl && (
-        <ImagePreview
-          style={{ backgroundImage: `url(${selectedImageUrl})` }}
-          selected={selectedImage !== ""}
-        />
-      )}
-      <ButtonStyled
-        variant="contained"
-        onClick={handleDeleteImage}
-        disabled={!selectedImage}
-      >
-        Delete Image
-      </ButtonStyled>
-      <ButtonStyled variant="contained" onClick={handleCancelSelection}>
-        Cancel
-      </ButtonStyled>
+            {imagesList.map((imageName) => (
+              <MenuItem key={imageName} value={imageName}>
+                {imageName}
+              </MenuItem>
+            ))}
+          </Select>
+          {selectedDeleteImage && (
+            <>
+              <ImagePreview
+                style={{ backgroundImage: `url(${selectedDeleteImageUrl})` }}
+                selected={selectedDeleteImage !== ""}
+              />
+              <ButtonStyled
+                variant="contained"
+                onClick={handleDeleteImage}
+                disabled={!selectedDeleteImage}
+              >
+                Delete Image
+              </ButtonStyled>
+              <ButtonStyled
+                variant="contained"
+                onClick={handleCancelDeleteImage}
+              >
+                Cancel
+              </ButtonStyled>
+            </>
+          )}
+        </DeleteContainer>
+      </Container>
     </RootContainer>
   );
 }
