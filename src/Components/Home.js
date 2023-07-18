@@ -141,10 +141,10 @@ export const Home = (props) => {
       if (selectedCategory === "All") {
         return updatedSubcategories.includes(product.subcategory);
       } else {
-        return (
-          product.category === selectedCategory &&
-          updatedSubcategories.includes(product.subcategory)
-        );
+        return updatedSubcategories.length > 0
+          ? product.category === selectedCategory &&
+              updatedSubcategories.includes(product.subcategory)
+          : product.category === selectedCategory;
       }
     });
     setFilteredProducts(filtered);
@@ -152,7 +152,7 @@ export const Home = (props) => {
 
   const handleBrandChange = (brand) => {
     let updatedBrands = [];
-    if (selectedBrands.includes(brand)) {
+    if (selectedBrands?.includes(brand)) {
       updatedBrands = selectedBrands.filter((item) => item !== brand);
     } else {
       updatedBrands = [...selectedBrands, brand];
@@ -161,29 +161,28 @@ export const Home = (props) => {
 
     let filtered = products.filter((product) => {
       if (selectedCategory === "All" && selectedSubcategories.length === 0) {
-        return updatedBrands.includes(product.brand);
+        return updatedBrands?.includes(product.brand);
       } else if (
         selectedCategory !== "All" &&
-        selectedSubcategories.length === 0
+        selectedSubcategories.length === 0 &&
+        updatedBrands.length > 0
       ) {
         return (
           product.category === selectedCategory &&
-          updatedBrands.includes(product.brand)
+          updatedBrands?.includes(product.brand)
         );
       } else if (
         selectedCategory === "All" &&
         selectedSubcategories.length > 0
       ) {
         return (
-          props.updatedSubcategories.includes(product.subcategory) &&
-          updatedBrands.includes(product.brand)
+          
+            selectedSubcategories.includes(product.subcategory) &&
+            updatedBrands.includes(product.brand)
+          
         );
       } else {
-        return (
-          product.category === selectedCategory &&
-          props.updatedSubcategories.includes(product.subcategory) &&
-          updatedBrands.includes(product.brand)
-        );
+        return product.category === selectedCategory;
       }
     });
     setFilteredProducts(filtered);
@@ -202,6 +201,7 @@ export const Home = (props) => {
             <div>
               <SideBar
                 category={selectedCategory}
+                subcategory={selectedSubcategories}
                 handleSubcategoryChange={handleSubcategoryChange}
                 handleBrandChange={handleBrandChange}
               />

@@ -3,6 +3,7 @@ import { subcategoryOptions, brandOptions } from "./AddProducts";
 
 export const SideBar = ({
   category,
+  subcategory,
   handleSubcategoryChange,
   handleBrandChange,
 }) => {
@@ -69,7 +70,7 @@ export const SideBar = ({
       </div>
       <div style={{ marginTop: "20px" }}>
         <h2>Brands</h2>
-        {brandOptions[category]?.map((brand) => (
+        {brandOptions[category]?.[subcategory]?.map((brand) => (
           <div key={brand} style={{ backgroundColor: "#fff" }}>
             <input
               type="checkbox"

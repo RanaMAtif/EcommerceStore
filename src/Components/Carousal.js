@@ -42,8 +42,7 @@ function Carousal() {
       }}
     >
       <Box sx={{ maxWidth: 1000, flexGrow: 1, mx: "auto" }}>
-        <Paper
-          rectangle
+        <Paper 
           elevation={0}
           sx={{
             display: "flex",

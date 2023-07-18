@@ -1,22 +1,107 @@
 import React, { useState } from "react";
 import { storage, fs } from "../Config/Config";
 export const subcategoryOptions = {
-  Men: ["T-shirts", "Trousers", "Shoes", "Watches"],
-  Women: ["Dresses", "Tops", "Shoes", "Jewelry"],
-  Fitness: ["Yoga mats", "Dumbbells", "Resistance bands", "Barbells"],
-  Sports: ["Basketball", "Football", "cricket ball"],
-  Electronics: ["Laptops", "Smartphones", "Headphones", "Refrigerator"],
-  Tools: ["Drills", "Screwdrivers", "Toolboxes", "Hammer"],
-  Groceries: ["Fruits", "Vegetables", "Snacks"],
+  Men: ["T_shirts", "Trousers", "Shoes", "Watches", "Hats", "Socks"],
+  Women: ["Dresses", "Tops", "Shoes", "Jewelry", "Handbags", "Scarves"],
+  Fitness: [
+    "Yoga mats",
+    "Dumbbells",
+    "Resistance bands",
+    "Barbells",
+    "Treadmills",
+    "Exercise bikes",
+  ],
+  Sports: [
+    "Basketball",
+    "Football",
+    "Cricket ball",
+    "Tennis racket",
+    "Golf clubs",
+  ],
+  Electronics: [
+    "Laptops",
+    "Smartphones",
+    "Headphones",
+    "Refrigerator",
+    "Televisions",
+    "Cameras",
+    "Airconditioners",
+  ],
+  Tools: [
+    "Drills",
+    "Screwdrivers",
+    "Toolboxes",
+    "Hammer",
+    "Wrenches",
+    "Measuring tape",
+  ],
+  Groceries: [
+    "Fruits",
+    "Vegetables",
+    "Snacks",
+    "Dairy products",
+    "Canned goods",
+    "Bakery items",
+  ],
 };
+
 export const brandOptions = {
-  Men: ["Nike", "Adidas", "Puma", "Polo", "Levis"],
-  Women: ["Nike", "Adidas", "Puma"],
-  Fitness: ["Under Armour", "Reebok", "Nike"],
-  Sports: ["Nike", "Adidas", "Puma"],
-  Electronics: ["Apple", "Samsung", "Sony"],
-  Tools: ["Bosch", "Makita", "DeWalt"],
-  Groceries: ["Nestle", "Kellogg's", "PepsiCo"],
+  Men: {
+    T_shirts: ["Nike", "Adidas", "Puma", "Polo", "Levis"],
+    Trousers: ["Nike", "Adidas", "Puma", "Levis"],
+    Shoes: ["Nike", "Adidas", "Puma"],
+    Watches: ["Rolex", "Casio", "Fossil", "Timex"],
+    Hats: ["New Era", "Adidas", "Under Armour", "Puma"],
+    Socks: ["Nike", "Adidas", "Puma"],
+  },
+  Women: {
+    Dresses: ["Zara", "H&M", "Forever 21", "Mango"],
+    Tops: ["Zara", "H&M", "Forever 21", "Mango"],
+    Shoes: ["Nike", "Adidas", "Puma"],
+    Jewelry: ["Pandora", "Swarovski", "Tiffany & Co", "Kate Spade"],
+    Handbags: ["Michael Kors", "Coach", "Kate Spade"],
+    Scarves: ["Hermes", "Burberry", "Gucci"],
+  },
+  Fitness: {
+    Yogamats: ["Liforme", "Manduka", "Jade Yoga"],
+    Dumbbells: ["Bowflex", "PowerBlock", "CAP Barbell"],
+    Resistance_bands: ["Fit Simplify", "TheraBand", "WODFitters"],
+    Barbells: ["Rogue Fitness", "CAP Barbell", "XMark Fitness"],
+    Treadmills: ["NordicTrack", "ProForm", "Sole Fitness"],
+    Exercise_bikes: ["Peloton", "Schwinn", "Nautilus"],
+  },
+  Sports: {
+    Basketball: ["Nike", "Adidas", "Spalding"],
+    Football: ["Nike", "Adidas", "Wilson"],
+    Cricketball: ["Kookaburra", "Duke", "SG"],
+    Tennisracket: ["Wilson", "Babolat", "Head"],
+    Golfclubs: ["Callaway", "TaylorMade", "Titleist"],
+  },
+  Electronics: {
+    Laptops: ["Apple", "Dell", "HP", "Lenovo"],
+    Smartphones: ["Apple", "Samsung", "Google", "OnePlus"],
+    Headphones: ["Sony", "Bose", "Sennheiser", "JBL"],
+    Refrigerator: ["LG", "Samsung", "Whirlpool"],
+    Televisions: ["Samsung", "LG", "Sony"],
+    Cameras: ["Canon", "Nikon", "Sony"],
+    Airconditioners: ["Daikin", "Carrier", "Mitsubishi"],
+  },
+  Tools: {
+    Drills: ["Bosch", "DeWalt", "Makita"],
+    Screwdrivers: ["Craftsman", "Klein Tools", "Wera"],
+    Toolboxes: ["Stanley", "Husky", "Craftsman"],
+    Hammer: ["Estwing", "Stanley", "Vaughan"],
+    Wrenches: ["Craftsman", "Channellock", "Snap-on"],
+    Measuringtape: ["Stanley", "Komelon", "Lufkin"],
+  },
+  Groceries: {
+    Fruits: ["Apple", "Banana", "Orange", "Grapes"],
+    Vegetables: ["Carrot", "Broccoli", "Tomato", "Spinach"],
+    Snacks: ["Chips", "Cookies", "Popcorn", "Pretzels"],
+    Dairyproducts: ["Milk", "Cheese", "Yogurt", "Butter"],
+    Cannedgoods: ["Soup", "Beans", "Tomatoes", "Tuna"],
+    Bakeryitems: ["Bread", "Bagels", "Croissants", "Muffins"],
+  },
 };
 
 export const AddProducts = () => {
@@ -42,10 +127,10 @@ export const AddProducts = () => {
         setImageError("");
       } else {
         setImage(null);
-        setImageError("please select a valid image file type (png or jpg)");
+        setImageError("Please select a valid image file type (png or jpg)");
       }
     } else {
-      console.log("please select your file");
+      console.log("Please select your file");
     }
   };
 
@@ -98,6 +183,19 @@ export const AddProducts = () => {
     );
   };
 
+  const handleCategoryChange = (e) => {
+    const selectedCategory = e.target.value;
+    setCategory(selectedCategory);
+    setSubcategory("");
+    setBrand("");
+  };
+
+  const handleSubcategoryChange = (e) => {
+    const selectedSubcategory = e.target.value;
+    setSubcategory(selectedSubcategory);
+    setBrand("");
+  };
+
   return (
     <div className="container">
       <br />
@@ -147,16 +245,16 @@ export const AddProducts = () => {
           className="form-control"
           required
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={handleCategoryChange}
         >
           <option value="">Select Product Category</option>
-          <option>Men</option>
-          <option>Women</option>
-          <option>Fitness</option>
-          <option>Sports</option>
-          <option>Electronics</option>
-          <option>Tools</option>
-          <option>Groceries</option>
+          <option value="Men">Men</option>
+          <option value="Women">Women</option>
+          <option value="Fitness">Fitness</option>
+          <option value="Sports">Sports</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Tools">Tools</option>
+          <option value="Groceries">Groceries</option>
         </select>
         <br />
         <label>Product Subcategory</label>
@@ -164,7 +262,7 @@ export const AddProducts = () => {
           className="form-control"
           required
           value={subcategory}
-          onChange={(e) => setSubcategory(e.target.value)}
+          onChange={handleSubcategoryChange}
         >
           <option value="">Select Product Subcategory</option>
           {subcategoryOptions[category]?.map((option) => (
@@ -182,7 +280,7 @@ export const AddProducts = () => {
           onChange={(e) => setBrand(e.target.value)}
         >
           <option value="">Select Product Brand</option>
-          {brandOptions[category]?.map((option) => (
+          {brandOptions[category]?.[subcategory]?.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
