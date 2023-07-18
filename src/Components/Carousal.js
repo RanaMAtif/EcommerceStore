@@ -1,87 +1,73 @@
-import * as React from "react";
-import { useTheme } from "@mui/material/styles";
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
-import SwipeableViews from "react-swipeable-views";
+import React, { useState, useEffect } from "react";
+import { storage } from "../Config/Config";
 import { autoPlay } from "react-swipeable-views-utils";
+import SwipeableViews from "react-swipeable-views";
 
 const AutoPlaySwipeableViews = autoPlay(SwipeableViews);
 
-const images = [
-  {
-    imgPath: require("../Images/Grocery.png").default,
-  },
-  {
-    imgPath: require("../Images/Jewelry.png").default,
-  },
-  {
-    imgPath: require("../Images/shoes.png").default,
-  },
-  {
-    imgPath: require("../Images/tools.png").default,
-  },
-];
-
 function Carousal() {
-  const theme = useTheme();
-  const [activeStep, setActiveStep] = React.useState(0);
+  const [images, setImages] = useState([]);
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const imagesRef = storage.ref("carousel-images");
+        const listResult = await imagesRef.listAll();
+
+        const imageUrls = await Promise.all(
+          listResult.items.map(async (item) => {
+            const url = await item.getDownloadURL();
+            return { imgPath: url };
+          })
+        );
+
+        setImages(imageUrls);
+      } catch (error) {
+        console.error("Error fetching images from Firebase Storage:", error);
+      }
+    };
+
+    fetchImages();
+  }, []);
 
   const handleStepChange = (step) => {
     setActiveStep(step);
   };
 
   return (
-    <Box
-      sx={{
+    <section
+      style={{
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        height: "100%",
-        overflow: "hidden",
+        padding: "20px",
+        marginBottom: "300px", // Add margin bottom to create space
       }}
     >
-      <Box sx={{ maxWidth: 1000, flexGrow: 1, mx: "auto" }}>
-        <Paper 
-          elevation={0}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            width: "fit-content",
-            pl: 6,
-            bgcolor: "background.default",
-          }}
-        >
-          <Typography>{images[activeStep].label}</Typography>
-        </Paper>
-        <AutoPlaySwipeableViews
-          axis={theme.direction === "rtl" ? "x-reverse" : "x"}
-          index={activeStep}
-          onChangeIndex={handleStepChange}
-          enableMouseEvents
-        >
-          {images.map((step, index) => (
-            <div key={step.label}>
-              {Math.abs(activeStep - index) <= 2 ? (
-                <Box
-                  component="img"
-                  sx={{
-                    height: "100%",
-                    display: "block",
-                    maxWidth: "100%",
-                    overflow: "hidden",
-                    marginLeft: "auto",
-                    marginRight: "auto",
-                  }}
-                  src={step.imgPath}
-                  alt={step.label}
+      <div style={{ maxWidth: "1000px", width: "100%", height: "300px" }}>
+        {images.length > 0 ? (
+          <AutoPlaySwipeableViews
+            index={activeStep}
+            onChangeIndex={handleStepChange}
+            enableMouseEvents
+          >
+            {images.map((image, index) => (
+              <div key={index}>
+                <img
+                  src={image.imgPath}
+                  alt=""
+                  style={{ width: "100%", height: "100%" }}
                 />
-              ) : null}
-            </div>
-          ))}
-        </AutoPlaySwipeableViews>
-      </Box>
-    </Box>
+              </div>
+            ))}
+          </AutoPlaySwipeableViews>
+        ) : (
+          <p>No images available</p>
+        )}
+      </div>
+    </section>
   );
 }
 
