@@ -2,15 +2,36 @@ import React, { useState, useEffect } from "react";
 import { storage } from "../Config/Config";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Button, Typography, Select, MenuItem } from "@mui/material";
+import {
+  Typography,
+  Select,
+  MenuItem,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
 import { styled } from "@mui/system";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import CancelIcon from "@mui/icons-material/Cancel";
+import DeleteIcon from "@mui/icons-material/Delete";
+import FileUploadIcon from "@mui/icons-material/FileUpload";
+
+const IconContainer = styled("div")({
+  display: "flex",
+  gap: "10px",
+});
+
+const IconStyled = styled(CloudUploadIcon)({
+  marginRight: (props) => props.theme.spacing(1),
+  background: "transparent", // Hide the background
+  borderRadius: "0", // Remove any border radius
+});
 
 const RootContainer = styled("div")({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  minHeight: "100vh",
+  minHeight: "20vh",
+  minWidth: "50vh",
 });
 
 const Container = styled("div")({
@@ -19,7 +40,7 @@ const Container = styled("div")({
   justifyContent: "center",
   gap: "20px",
   width: "80%",
-  position: "relative", // Add this line to the Container
+  position: "relative",
 });
 
 const UploadContainer = styled("div")({
@@ -33,8 +54,8 @@ const AddContainer = styled("div")({
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "flex-start", // Align items at the top
-  flex: "1 0 100%", // Take up 50% of the available width
-  maxWidth: "calc(60% - 20px)", // Limit the width of the container
+  flex: "1 0 50%", // Take up 50% of the available width
+  maxWidth: "calc(50% - 10px)", // Limit the width of the container
 });
 
 const DeleteContainer = styled("div")({
@@ -43,7 +64,8 @@ const DeleteContainer = styled("div")({
   alignItems: "center",
   justifyContent: "flex-start", // Align items at the top
   flex: "1 0 50%", // Take up 50% of the available width
-  maxWidth: "calc(100% - 20px)", // Limit the width of the container
+  maxWidth: "calc(600% - 20px)", // Limit the width of the container
+  marginLeft: "20px",
 });
 
 const Line = styled("div")({
@@ -60,17 +82,13 @@ const Input = styled("input")({
   display: "none",
 });
 
-const ButtonStyled = styled(Button)({
-  backgroundColor: (props) => props.theme.palette.primary.main,
-  color: (props) => props.theme.palette.common.white,
-  "&:hover": {
-    backgroundColor: (props) => props.theme.palette.primary.dark,
-  },
-});
-
-const IconStyled = styled(CloudUploadIcon)({
-  marginRight: (props) => props.theme.spacing(1),
-});
+// const ButtonStyled = styled(Button)({
+//   backgroundColor: (props) => props.theme.palette.primary.main,
+//   color: (props) => props.theme.palette.common.white,
+//   "&:hover": {
+//     backgroundColor: (props) => props.theme.palette.primary.dark,
+//   },
+// });
 
 const ImagePreview = styled("div")({
   marginTop: "10px",
@@ -144,40 +162,69 @@ function AddCarousal() {
           console.log("Image Added Successfully");
           toast.success("Image added to the Carousal");
           setImage(null);
+          setSelectedImage(""); // Reset the selectedImage
+          setSelectedImageUrl("");
+          // Fetch the updated list of images after addition
+          const fetchUpdatedImagesList = async () => {
+            try {
+              const updatedImagesRef = storage.ref("carousel-images");
+              const updatedListResult = await updatedImagesRef.listAll();
+
+              const updatedImageNames = updatedListResult.items.map(
+                (item) => item.name
+              );
+              setImagesList(updatedImageNames);
+            } catch (error) {
+              console.error(
+                "Error fetching images list from Firebase Storage:",
+                error
+              );
+            }
+          };
+          fetchUpdatedImagesList();
         }
       );
     }
   };
 
   const handleDeleteImage = () => {
-    if (selectedImage) {
-      const imageRef = storage.ref(`carousel-images/${selectedImage}`);
+    console.log("Image delete clicked");
+    if (selectedDeleteImage) {
+      const imageRef = storage.ref(`carousel-images/${selectedDeleteImage}`);
       imageRef
         .delete()
         .then(() => {
+          console.log("Image deleted successfully");
           toast.success("Image deleted successfully");
-          setSelectedImage("");
-          setSelectedImageUrl("");
+          setSelectedDeleteImage("");
+          setSelectedDeleteImageUrl("");
+          // Fetch the updated list of images after deletion
+          const fetchUpdatedImagesList = async () => {
+            try {
+              const updatedImagesRef = storage.ref("carousel-images");
+              const updatedListResult = await updatedImagesRef.listAll();
+
+              const updatedImageNames = updatedListResult.items.map(
+                (item) => item.name
+              );
+              setImagesList(updatedImageNames);
+            } catch (error) {
+              console.error(
+                "Error fetching images list from Firebase Storage:",
+                error
+              );
+            }
+          };
+          fetchUpdatedImagesList();
         })
         .catch((error) => {
           console.error("Error deleting image:", error);
           toast.error("Failed to delete image");
         });
+    } else {
+      console.log("No Image to delete");
+      toast.info("Please select an image to delete");
     }
-  };
-
-  const handleImageSelect = (imageName) => {
-    setSelectedImage(imageName);
-    const imageUrl = storage.ref(`carousel-images/${imageName}`);
-    imageUrl
-      .getDownloadURL()
-      .then((url) => {
-        setSelectedImageUrl(url);
-      })
-      .catch((error) => {
-        console.error("Error retrieving image URL:", error);
-        setSelectedImageUrl("");
-      });
   };
 
   const handleCancelAddImage = () => {
@@ -196,35 +243,50 @@ function AddCarousal() {
     <RootContainer>
       <Container>
         <AddContainer>
-          <Typography variant="h5">Add Image</Typography>
+          <Typography variant="h6">Add Image</Typography>
           <UploadContainer>
             <Input type="file" id="upload-input" onChange={handleImageChange} />
             <label htmlFor="upload-input">
-              <ButtonStyled
-                variant="contained"
-                component="span"
-                startIcon={<IconStyled />}
-              >
-                Select Image
-              </ButtonStyled>
+              <Tooltip title="Select Image">
+                <IconButton component="span" aria-label="upload image">
+                  <IconStyled />
+                </IconButton>
+              </Tooltip>
             </label>
             <Typography variant="body2">
               {image ? image.name : "No image selected"}
             </Typography>
           </UploadContainer>
           <ImagePreview
-            style={{ backgroundImage: `url(${selectedImageUrl})` }}
+            key={selectedImageUrl} // Add a key prop to the ImagePreview
+            style={{
+              backgroundImage: selectedImageUrl
+                ? `url(${selectedImageUrl})`
+                : "none",
+            }}
             selected={selectedImage !== ""}
           />
           {image && (
-            <ButtonStyled variant="contained" onClick={handleAddImage}>
-              Upload Image
-            </ButtonStyled>
-          )}
-          {image && (
-            <ButtonStyled variant="contained" onClick={handleCancelAddImage}>
-              Cancel
-            </ButtonStyled>
+            <IconContainer>
+              <Tooltip title="Upload Image">
+                <IconButton
+                  variant="contained"
+                  onClick={handleAddImage}
+                  aria-label="upload"
+                >
+                  <FileUploadIcon color="success" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Cancel">
+                <IconButton
+                  variant="contained"
+                  onClick={handleCancelAddImage}
+                  aria-label="cancel"
+                >
+                  <CancelIcon color="primary" />
+                </IconButton>
+              </Tooltip>
+            </IconContainer>
           )}
         </AddContainer>
         <Line />
@@ -259,19 +321,27 @@ function AddCarousal() {
                 style={{ backgroundImage: `url(${selectedDeleteImageUrl})` }}
                 selected={selectedDeleteImage !== ""}
               />
-              <ButtonStyled
-                variant="contained"
-                onClick={handleDeleteImage}
-                disabled={!selectedDeleteImage}
-              >
-                Delete Image
-              </ButtonStyled>
-              <ButtonStyled
-                variant="contained"
-                onClick={handleCancelDeleteImage}
-              >
-                Cancel
-              </ButtonStyled>
+              <IconContainer>
+                <Tooltip title="Delete Image">
+                  <IconButton
+                    variant="contained"
+                    onClick={handleDeleteImage}
+                    disabled={!selectedDeleteImage}
+                    aria-label="delete"
+                  >
+                    <DeleteIcon color="error" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Cancel">
+                  <IconButton
+                    variant="contained"
+                    onClick={handleCancelDeleteImage}
+                    aria-label="cancel"
+                  >
+                    <CancelIcon color="primary" />
+                  </IconButton>
+                </Tooltip>
+              </IconContainer>
             </>
           )}
         </DeleteContainer>
