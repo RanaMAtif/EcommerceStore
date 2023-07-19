@@ -1,9 +1,14 @@
 import React, { useState } from "react";
 import { AddProducts } from "./AddProducts";
-import AddCarousal from "./AddCarousal";
+import AddCarousal from "./HandleCarousal";
 import { Button, Modal, IconButton } from "@mui/material";
 import { styled } from "@mui/system";
 import CloseIcon from "@mui/icons-material/Close";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import UpdateIcon from "@mui/icons-material/Update";
+import { DeleteProducts } from "./DeleteProducts";
+import { Tooltip } from "@mui/material";
 
 const AdminContainer = styled("div")({
   display: "flex",
@@ -54,6 +59,16 @@ const ModalContent = styled("div")({
   maxWidth: "600px",
   margin: "auto",
   position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+  alignItems: "center",
+});
+
+const BigButton = styled(Button)({
+  width: "100%",
+  height: "100px",
+  fontSize: "24px",
 });
 
 const CloseButton = styled(IconButton)({
@@ -65,6 +80,9 @@ const CloseButton = styled(IconButton)({
 export default function AdminPanel() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isCarousalModalOpen, setIsCarousalModalOpen] = useState(false);
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] =
+    useState(false);
 
   const handleOpenProductModal = () => {
     setIsProductModalOpen(true);
@@ -82,6 +100,21 @@ export default function AdminPanel() {
     setIsCarousalModalOpen(false);
   };
 
+  const handleOpenAddProductModal = () => {
+    setIsAddProductModalOpen(true);
+  };
+
+  const handleCloseAddProductModal = () => {
+    setIsAddProductModalOpen(false);
+  };
+  const handleOpenDeleteProductModal = () => {
+    setIsDeleteProductModalOpen(true);
+  };
+
+  const handleCloseDeleteProductModal = () => {
+    setIsDeleteProductModalOpen(false);
+  };
+
   return (
     <>
       <div
@@ -90,7 +123,6 @@ export default function AdminPanel() {
           fontSize: "36px",
           color: "#0040FF",
           textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
-
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -119,7 +151,76 @@ export default function AdminPanel() {
               >
                 <CloseIcon />
               </CloseButton>
-              <AddProducts />
+              <BigButton
+                variant="contained"
+                color="primary"
+                onClick={handleOpenAddProductModal}
+              >
+                <AddIcon fontSize="large" />
+                Add Product
+              </BigButton>
+              <BigButton
+                variant="contained"
+                color="error"
+                onClick={handleOpenDeleteProductModal}
+              >
+                <DeleteIcon fontSize="large" />
+                Delete Product
+              </BigButton>
+              <BigButton variant="contained" color="info">
+                <UpdateIcon fontSize="large" />
+                Update Product
+              </BigButton>
+              <ModalContent>
+                <Tooltip title="Close">
+                  <CloseButton
+                    color="inherit"
+                    onClick={handleCloseProductModal}
+                    size="small"
+                  >
+                    <CloseIcon />
+                  </CloseButton>
+                </Tooltip>
+              </ModalContent>
+              {isAddProductModalOpen && (
+                <Modal
+                  open={isAddProductModalOpen}
+                  onClose={handleCloseAddProductModal}
+                >
+                  <ModalContainer>
+                    <ModalContent>
+                      <CloseButton
+                        color="inherit"
+                        onClick={handleCloseAddProductModal}
+                        size="small"
+                      >
+                        <CloseIcon />
+                      </CloseButton>
+                      <AddProducts />
+                    </ModalContent>
+                  </ModalContainer>
+                </Modal>
+              )}
+              {isDeleteProductModalOpen && (
+                <Modal
+                  open={isDeleteProductModalOpen}
+                  onClose={handleCloseDeleteProductModal}
+                >
+                  <ModalContainer>
+                    <ModalContent>
+                      <CloseButton
+                        color="inherit"
+                        onClick={handleCloseDeleteProductModal}
+                        size="small"
+                      >
+                        <CloseIcon />
+                      </CloseButton>
+
+                      <DeleteProducts />
+                    </ModalContent>
+                  </ModalContainer>
+                </Modal>
+              )}
             </ModalContent>
           </ModalContainer>
         </Modal>

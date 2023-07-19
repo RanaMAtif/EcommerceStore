@@ -102,7 +102,7 @@ const ImagePreview = styled("div")({
   backgroundRepeat: "no-repeat",
 });
 
-function AddCarousal() {
+function HandleCarousal() {
   const [image, setImage] = useState(null);
   const [imagesList, setImagesList] = useState([]);
   const [selectedImage, setSelectedImage] = useState("");
@@ -350,4 +350,4 @@ function AddCarousal() {
   );
 }
 
-export default AddCarousal;
+export default HandleCarousal;

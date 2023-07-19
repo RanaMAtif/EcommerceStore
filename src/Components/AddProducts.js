@@ -8,7 +8,7 @@ export const subcategoryOptions = {
     "Dumbbells",
     "Resistancebands",
     "Barbells",
-    "Treadmills", 
+    "Treadmills",
     "Exercisebikes",
   ],
   Sports: [
@@ -197,7 +197,14 @@ export const AddProducts = () => {
   };
 
   return (
-    <div className="container">
+    <div
+    className="container"
+    style={{
+      height: "80vh", // Adjust the height of the container to your desired value
+      overflowY: "auto",
+      scrollbarWidth: "thin", // For Firefox and some other browsers
+      msOverflowStyle: "none", // Hide scrollbar for IE and Edge
+    }}>
       <br />
       <br />
       <h1>Add Products</h1>
