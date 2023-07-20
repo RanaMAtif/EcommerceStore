@@ -9,6 +9,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import UpdateIcon from "@mui/icons-material/Update";
 import { DeleteProducts } from "./DeleteProducts";
 import { Tooltip } from "@mui/material";
+import {UpdateProducts} from "./UpdateProducts"
 
 const AdminContainer = styled("div")({
   display: "flex",
@@ -50,6 +51,7 @@ const ModalContainer = styled("div")({
   alignItems: "center",
   justifyContent: "center",
   height: "100%",
+  overflowY: "auto",
 });
 
 const ModalContent = styled("div")({
@@ -83,6 +85,8 @@ export default function AdminPanel() {
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] =
     useState(false);
+  const [isUpdateProductModalOpen, setIsUpdateProductModalOpen] =
+    useState(false);
 
   const handleOpenProductModal = () => {
     setIsProductModalOpen(true);
@@ -113,6 +117,13 @@ export default function AdminPanel() {
 
   const handleCloseDeleteProductModal = () => {
     setIsDeleteProductModalOpen(false);
+  };
+  const handleOpenUpdateProductModal = () => {
+    setIsUpdateProductModalOpen(true);
+  };
+
+  const handleCloseUpdateProductModal = () => {
+    setIsUpdateProductModalOpen(false);
   };
 
   return (
@@ -167,7 +178,7 @@ export default function AdminPanel() {
                 <DeleteIcon fontSize="large" />
                 Delete Product
               </BigButton>
-              <BigButton variant="contained" color="info">
+              <BigButton variant="contained" color="info"  onClick={handleOpenUpdateProductModal}>
                 <UpdateIcon fontSize="large" />
                 Update Product
               </BigButton>
@@ -217,6 +228,25 @@ export default function AdminPanel() {
                       </CloseButton>
 
                       <DeleteProducts />
+                    </ModalContent>
+                  </ModalContainer>
+                </Modal>
+              )}
+              {isUpdateProductModalOpen && (
+                <Modal
+                  open={isUpdateProductModalOpen}
+                  onClose={handleCloseUpdateProductModal}
+                >
+                  <ModalContainer>
+                    <ModalContent>
+                      <CloseButton
+                        color="inherit"
+                        onClick={handleCloseUpdateProductModal}
+                        size="small"
+                      >
+                        <CloseIcon />
+                      </CloseButton>
+                      <UpdateProducts />
                     </ModalContent>
                   </ModalContainer>
                 </Modal>

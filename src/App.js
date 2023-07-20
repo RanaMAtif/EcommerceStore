@@ -16,8 +16,7 @@ export const App = () => {
         <Route path="/signup" component={Signup}/>
         <Route path="/login" component={Login}/>
         <Route path="/admin" component={AdminPanel}/>
-       
-        <Route path="/cart" component={Cart}/>       
+        <Route path="/cart" component={Cart}/>        
         <Route component={NotFound}/>        
       </Switch>
     </BrowserRouter>

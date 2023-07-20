@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { fs } from "../Config/Config";
+import { fs, storage } from "../Config/Config";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { IconButton, Tooltip } from "@mui/material";
 import { toast } from "react-toastify";
@@ -28,7 +28,22 @@ export const DeleteProducts = () => {
       .catch((error) => console.error("Error fetching products: ", error));
   };
 
-  const handleDelete = (productId) => {
+  const handleDelete = (productId, imageUrl) => {
+    // Delete the product image from Firebase Storage
+    if (imageUrl) {
+      const storageRef = storage.refFromURL(imageUrl); // Corrected line
+      storageRef
+        .delete()
+        .then(() => {
+          console.log("Product image deleted successfully from Firebase Storage");
+        })
+        .catch((error) => {
+          console.error("Error deleting product image: ", error);
+        });
+    } else {
+      console.log("Image URL is empty, not entering if block");
+    }
+  
     // Delete the product with the given ID from Firestore
     fs.collection("Products")
       .doc(productId)
@@ -38,9 +53,10 @@ export const DeleteProducts = () => {
         // After successful deletion, update the products list
         fetchProducts();
       })
-      .catch((error) => console.error("Error deleting product: ", error));
+      .catch((error) => {
+        console.error("Error deleting product: ", error);
+      });
   };
-
   const filteredProducts = products.filter((product) =>
     product.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -48,15 +64,7 @@ export const DeleteProducts = () => {
   return (
     <div
       className="container"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        height: "100vh",
-        
-      overflowY: "auto",
-      }}
+      
     >
       <div style={{ textAlign: "center", marginTop: "20px" }}>
         <h1>Delete Products</h1>
@@ -99,8 +107,8 @@ export const DeleteProducts = () => {
                 <Tooltip title="Delete Image">
                   <IconButton
                     variant="contained"
-                    onClick={() => handleDelete(product.id)} // Pass productId to the handleDelete function
-                    aria-label="delete" // Add aria-label for accessibility
+                    onClick={() => handleDelete(product.id, product.url)}
+                    aria-label="delete"
                   >
                     <DeleteIcon color="error" />
                   </IconButton>

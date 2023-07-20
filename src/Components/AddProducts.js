@@ -112,6 +112,7 @@ export const AddProducts = () => {
   const [subcategory, setSubcategory] = useState("");
   const [brand, setBrand] = useState("");
   const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const [imageError, setImageError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -125,12 +126,18 @@ export const AddProducts = () => {
       if (selectedFile && types.includes(selectedFile.type)) {
         setImage(selectedFile);
         setImageError("");
+        // Create an image preview URL and set it in the state
+        setImagePreview(URL.createObjectURL(selectedFile));
       } else {
         setImage(null);
         setImageError("Please select a valid image file type (png or jpg)");
+        // Clear the image preview when there is an error
+        setImagePreview(null);
       }
     } else {
       console.log("Please select your file");
+      // Clear the image preview when no file is selected
+      setImagePreview(null);
     }
   };
 
@@ -197,14 +204,7 @@ export const AddProducts = () => {
   };
 
   return (
-    <div
-    className="container"
-    style={{
-      height: "80vh", // Adjust the height of the container to your desired value
-      overflowY: "auto",
-      scrollbarWidth: "thin", // For Firefox and some other browsers
-      msOverflowStyle: "none", // Hide scrollbar for IE and Edge
-    }}>
+    <div className="container">
       <br />
       <br />
       <h1>Add Products</h1>
@@ -302,6 +302,13 @@ export const AddProducts = () => {
           required
           onChange={handleProductImg}
         />
+        {imagePreview && (
+          <img
+            src={imagePreview}
+            alt="Image Preview"
+            style={{ width: "200px" }}
+          />
+        )}
 
         {imageError && (
           <>
@@ -309,6 +316,7 @@ export const AddProducts = () => {
             <div className="error-msg">{imageError}</div>
           </>
         )}
+
         <br />
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button type="submit" className="btn btn-success btn-md">
