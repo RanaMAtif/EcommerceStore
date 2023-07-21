@@ -9,7 +9,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import UpdateIcon from "@mui/icons-material/Update";
 import { DeleteProducts } from "./DeleteProducts";
 import { Tooltip } from "@mui/material";
-import {UpdateProducts} from "./UpdateProducts"
+import { UpdateProducts } from "./UpdateProducts";
 
 const AdminContainer = styled("div")({
   display: "flex",
@@ -178,7 +178,11 @@ export default function AdminPanel() {
                 <DeleteIcon fontSize="large" />
                 Delete Product
               </BigButton>
-              <BigButton variant="contained" color="info"  onClick={handleOpenUpdateProductModal}>
+              <BigButton
+                variant="contained"
+                color="info"
+                onClick={handleOpenUpdateProductModal}
+              >
                 <UpdateIcon fontSize="large" />
                 Update Product
               </BigButton>

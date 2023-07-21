@@ -305,7 +305,7 @@ export const AddProducts = () => {
         {imagePreview && (
           <img
             src={imagePreview}
-            alt="Image Preview"
+            alt="Product Image"
             style={{ width: "200px" }}
           />
         )}

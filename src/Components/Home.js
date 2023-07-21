@@ -5,6 +5,7 @@ import { auth, fs } from "../Config/Config";
 import { IndividualFilteredProduct } from "./IndividualFilteredProduct";
 import Carousal from "./Carousal";
 import { SideBar } from "./SideBar";
+import { Button } from "@mui/material";
 
 export const Home = (props) => {
   // Getting current user uid
@@ -33,7 +34,11 @@ export const Home = (props) => {
             .get()
             .then((snapshot) => {
               if (snapshot.exists) {
-                setUser(snapshot.data().FirstName);
+                const userData = snapshot.data();
+                setUser({
+                  firstName: userData.FirstName,
+                  email: user.email,
+                });
               } else {
                 console.log(
                   "User document does not exist or is missing required field"
@@ -54,7 +59,6 @@ export const Home = (props) => {
   };
 
   const user = GetCurrentUser();
-
   // State of products
   const [products, setProducts] = useState([]);
 
@@ -176,10 +180,8 @@ export const Home = (props) => {
         selectedSubcategories.length > 0
       ) {
         return (
-          
-            selectedSubcategories.includes(product.subcategory) &&
-            updatedBrands.includes(product.brand)
-          
+          selectedSubcategories.includes(product.subcategory) &&
+          updatedBrands.includes(product.brand)
         );
       } else {
         return product.category === selectedCategory;
@@ -215,12 +217,9 @@ export const Home = (props) => {
         {filteredProducts.length > 0 ? (
           <div className="my-products">
             <h1 className="text-center">{selectedCategory}</h1>
-            <a
-              href="javascript:void(0)"
-              onClick={() => handleCategoryChange("All")}
-            >
+            <Button onClick={() => handleCategoryChange("All")}>
               Return to All Products
-            </a>
+            </Button>
             <div className="products-box">
               {filteredProducts.map((individualFilteredProduct) => (
                 <IndividualFilteredProduct
