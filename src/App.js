@@ -1,26 +1,24 @@
-import React from 'react'
-import { BrowserRouter, Switch, Route } from 'react-router-dom'
-import { Home } from './Components/Home'
-import { Login } from './Components/Login'
-import { Signup } from './Components/Signup'
-import { NotFound } from './Components/NotFound'
-import { Cart } from './Components/Cart'
-import AdminPanel from './Components/AdminPanel'
-
+import React from "react";
+import { BrowserRouter, Switch, Route } from "react-router-dom";
+import { Home } from "./Components/pages/Home";
+import { Login } from "./Components/pages/Login";
+import  {Signup}  from "./Components/pages/Signup";
+import { Cart } from "./Components/cart/Cart";
+import AdminPanel from "./Components/admin/AdminPanel";
 
 export const App = () => {
   return (
     <BrowserRouter>
       <Switch>
-        <Route exact path="/" component = {Home}/>
-        <Route path="/signup" component={Signup}/>
-        <Route path="/login" component={Login}/>
-        <Route path="/admin" component={AdminPanel}/>
-        <Route path="/cart" component={Cart}/>        
-        <Route component={NotFound}/>        
+        <Route exact path="/" component={Home} />
+        <Route path="/signup" component={Signup} />
+        <Route path="/login" component={Login} />
+    
+        <Route path="/admin" component={AdminPanel} />
+        <Route path="/cart" component={Cart} />
       </Switch>
     </BrowserRouter>
-  )
-}
+  );
+};
 
-export default App
+export default App;
