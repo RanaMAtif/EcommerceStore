@@ -321,7 +321,7 @@ export const AddProducts = () => {
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button type="submit" className="btn btn-success btn-md">
             SUBMIT
-          </button>
+          </button>a
         </div>
       </form>
       {uploadError && (

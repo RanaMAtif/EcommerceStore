@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AddProducts } from "./AddProducts";
+import  {AddProducts}  from "./AddProducts";
 import HandleCarousal from "./HandleCarousal";
 import { Button, Modal, IconButton } from "@mui/material";
 import { styled } from "@mui/system";
