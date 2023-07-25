@@ -1,11 +1,11 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import logo from "../../Images/logo.png";
 import { Icon } from "react-icons-kit";
 import { shoppingCart } from "react-icons-kit/feather/shoppingCart";
 import { auth } from "../../Config/Config";
 import { useHistory } from "react-router-dom";
-import { Button, Menu, MenuItem } from "@mui/material";
+import { Button, Menu, MenuItem, Typography } from "@mui/material";
 import FilterNav from "./FilterNav";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 const adminEmails = {
@@ -14,6 +14,7 @@ const adminEmails = {
 
 export const Navbar = ({ user, totalProducts, handleCategoryChange }) => {
   const history = useHistory();
+  const location = useLocation(); // Get the current route location
   const [anchorEl, setAnchorEl] = React.useState(null);
   const handleLogout = () => {
     auth.signOut().then(() => {
@@ -32,22 +33,40 @@ export const Navbar = ({ user, totalProducts, handleCategoryChange }) => {
   };
 
   const isAdmin = user && adminEmails[user.email?.toLowerCase()];
-  
+
   return (
-    <div className="navbar">
+    <div
+      className="navbar"
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        p: 2,
+      }}
+    >
       <div className="leftside">
         <div className="logo">
           <Link className="navlink" to="/">
             <img src={logo} alt="logo" />
           </Link>
         </div>
-      </div>
-      <div>
-        <FilterNav handleCategoryChange={handleCategoryChange} />
-      </div>
+        </div>
+        <div
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center", // Center the FilterNav component
+          }}
+        >
+          {/* Conditionally render the FilterNav component */}
+          {location.pathname !== "/cart" && (
+            <FilterNav handleCategoryChange={handleCategoryChange} />
+          )}
+        </div>
+      
 
-      <div className="rightside">
-        {!user && (
+      <div className="rightside" sx={{ display: "flex", alignItems: "center" }}>
+        {!user ? (
           <>
             <div>
               <Link className="navlink" to="signup">
@@ -60,9 +79,7 @@ export const Navbar = ({ user, totalProducts, handleCategoryChange }) => {
               </Link>
             </div>
           </>
-        )}
-
-        {user && (
+        ) : (
           <>
             <div>
               <Button
@@ -72,7 +89,7 @@ export const Navbar = ({ user, totalProducts, handleCategoryChange }) => {
                 className="navlink"
                 disableRipple
               >
-                {user.firstName}
+                <Typography variant="body1">{user.firstName}</Typography>
               </Button>
               {isAdmin && ( // Check if the user is an admin before rendering the menu
                 <Menu
@@ -83,15 +100,20 @@ export const Navbar = ({ user, totalProducts, handleCategoryChange }) => {
                   onClose={handleUserMenuClose}
                 >
                   <MenuItem onClick={handleAdminSettings}>
-                    <ManageAccountsOutlinedIcon size={20} />
-                    Admin Settings
+                    <ManageAccountsOutlinedIcon
+                      size={20}
+                      sx={{ marginRight: 1 }}
+                    />
+                    <Typography variant="body1">ADMIN SETTINGS</Typography>
                   </MenuItem>
                 </Menu>
               )}
-              
             </div>
-            <div className="cart-menu-btn">
-              <Link className="navlink" to="cart">
+            <div
+              className="cart-menu-btn"
+              sx={{ display: "flex", alignItems: "center", ml: 2 }}
+            >
+              <Link className="navlink" to="/cart">
                 <Icon icon={shoppingCart} size={20} />
               </Link>
               <span className="cart-indicator">{totalProducts}</span>

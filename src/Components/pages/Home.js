@@ -6,6 +6,7 @@ import { IndividualFilteredProduct } from "../IndividualFilteredProduct";
 import Carousal from "../Carousal";
 import { SideBar } from "../sideBar/SideBar";
 import { Button } from "@mui/material";
+import Footer from "../footer/Footer";
 
 export const Home = (props) => {
   // Getting current user uid
@@ -156,7 +157,7 @@ export const Home = (props) => {
 
   const handleBrandChange = (brand) => {
     let updatedBrands = [];
-    if (selectedBrands?.includes(brand)) {
+    if (selectedBrands.includes(brand)) {
       updatedBrands = selectedBrands.filter((item) => item !== brand);
     } else {
       updatedBrands = [...selectedBrands, brand];
@@ -164,27 +165,30 @@ export const Home = (props) => {
     setSelectedBrands(updatedBrands);
 
     let filtered = products.filter((product) => {
-      if (selectedCategory === "All" && selectedSubcategories.length === 0) {
-        return updatedBrands?.includes(product.brand);
-      } else if (
-        selectedCategory !== "All" &&
-        selectedSubcategories.length === 0 &&
-        updatedBrands.length > 0
-      ) {
-        return (
-          product.category === selectedCategory &&
-          updatedBrands?.includes(product.brand)
-        );
-      } else if (
-        selectedCategory === "All" &&
-        selectedSubcategories.length > 0
-      ) {
+      const isSelectedCategoryAll = selectedCategory === "All";
+      const isSelectedSubcategoriesEmpty = selectedSubcategories.length === 0;
+      const isSelectedBrandsEmpty = updatedBrands.length === 0;
+
+      if (isSelectedCategoryAll && isSelectedSubcategoriesEmpty) {
+        return isSelectedBrandsEmpty
+          ? true
+          : updatedBrands.includes(product.brand);
+      } else if (isSelectedCategoryAll && !isSelectedSubcategoriesEmpty) {
         return (
           selectedSubcategories.includes(product.subcategory) &&
-          updatedBrands.includes(product.brand)
+          (isSelectedBrandsEmpty ? true : updatedBrands.includes(product.brand))
+        );
+      } else if (!isSelectedCategoryAll && isSelectedSubcategoriesEmpty) {
+        return (
+          product.category === selectedCategory &&
+          (isSelectedBrandsEmpty ? true : updatedBrands.includes(product.brand))
         );
       } else {
-        return product.category === selectedCategory;
+        return (
+          product.category === selectedCategory &&
+          selectedSubcategories.includes(product.subcategory) &&
+          (isSelectedBrandsEmpty ? true : updatedBrands.includes(product.brand))
+        );
       }
     });
     setFilteredProducts(filtered);
@@ -239,6 +243,7 @@ export const Home = (props) => {
           </div>
         )}
       </div>
+      <Footer />
     </>
   );
 };

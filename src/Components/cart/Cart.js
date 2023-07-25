@@ -197,8 +197,9 @@ export const Cart = () => {
       <br></br>
       {cartProducts.length > 0 && (
         <div className="container-fluid">
+        
           <h1 className="text-center">Cart</h1>
-          <div className="products-box cart">
+          <div style={{ display: "flex", justifyContent: "center" }}>
             <CartProducts
               cartProducts={cartProducts}
               cartProductIncrease={cartProductIncrease}
