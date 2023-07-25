@@ -6,6 +6,7 @@ import "firebase/firestore";
 const AddNewAddprods = () => {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [brand, setBrand] = useState("");
@@ -46,6 +47,29 @@ const AddNewAddprods = () => {
     }
   }, [category]);
 
+  // Fetch brands for the selected subcategory from Firestore
+  useEffect(() => {
+    if (category && subcategory) {
+      fs.collection("Categories")
+        .doc(category)
+        .get()
+        .then((doc) => {
+          if (doc.exists) {
+            const brandsList = doc.data()[subcategory] || [];
+            setBrands(brandsList);
+          } else {
+            console.log("No brands found for this subcategory.");
+            setBrands([]);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching brands: ", error);
+        });
+    } else {
+      setBrands([]);
+    }
+  }, [category, subcategory]);
+
   const handleAddData = (e) => {
     e.preventDefault();
 
@@ -59,11 +83,20 @@ const AddNewAddprods = () => {
         setSubcategories([...subcategories, subcategory]);
       }
 
+      let brandToAdd = brand;
+      if (!brands.includes(brand)) {
+        // If the brand is not in the brands list, it's a new value
+        // Add it to the brands list
+        brandToAdd = brand;
+        setBrands([...brands, brand]);
+      }
+
       fs.collection("Categories")
         .doc(category)
         .set(
           {
-            [subcategoryToAdd]: firebase.firestore.FieldValue.arrayUnion(brand), // Use firebase.firestore.FieldValue.arrayUnion
+            [subcategoryToAdd]:
+              firebase.firestore.FieldValue.arrayUnion(brandToAdd),
           },
           { merge: true }
         )
@@ -122,10 +155,16 @@ const AddNewAddprods = () => {
           <input
             type="text"
             className="form-control"
-            required
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
+            list="brandList" // Add list attribute for datalist
           />
+          {/* Datalist for available brands */}
+          <datalist id="brandList">
+            {brands.map((brand) => (
+              <option key={brand} value={brand} />
+            ))}
+          </datalist>
         </div>
         <button type="submit" className="btn btn-primary">
           Submit
