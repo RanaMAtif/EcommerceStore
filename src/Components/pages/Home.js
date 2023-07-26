@@ -4,11 +4,23 @@ import { Products } from "../product/Products";
 import { auth, fs } from "../../Config/Config";
 import { IndividualFilteredProduct } from "../IndividualFilteredProduct";
 import Carousal from "../Carousal";
-import { SideBar } from "../sideBar/SideBar";
 import { Button } from "@mui/material";
 import Footer from "../footer/Footer";
+import { SideBar } from "../sideBar/SideBar";
+const footerStyle = {
+  position: "fixed",
+  left: 0,
+  bottom: 0,
+  width: "100%",
+  zIndex: 1, // Ensure the footer appears above other content
+};
 
 export const Home = (props) => {
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedSubcategories, setSelectedSubcategories] = useState([]);
+  const [selectedBrands, setSelectedBrands] = useState([]);
+  const [noProductsFound, setNoProductsFound] = useState(false);
+
   // Getting current user uid
   const GetUserUid = () => {
     const [uid, setUid] = useState(null);
@@ -65,19 +77,69 @@ export const Home = (props) => {
 
   // Getting products function
   const getProducts = async () => {
-    const products = await fs.collection("Products").get();
-    const productsArray = [];
-    products.forEach((doc) => {
-      const data = doc.data();
-      data.ID = doc.id;
-      productsArray.push(data);
-    });
-    setProducts(productsArray);
+    let productsRef = fs.collection("Products");
+
+    if (selectedCategory !== "" && selectedCategory !== "All") {
+      productsRef = productsRef.where("category", "==", selectedCategory);
+    }
+
+    if (selectedSubcategories.length > 0) {
+      productsRef = productsRef.where(
+        "subcategory",
+        "in",
+        selectedSubcategories
+      );
+    }
+
+    // We'll handle the brand filtering separately
+    // Filter products based on selected brands
+    if (selectedBrands.length > 0) {
+      const brandFilterProducts = await productsRef.get();
+      const filteredProducts = brandFilterProducts.docs.filter((doc) => {
+        const productData = doc.data();
+        return selectedBrands.includes(productData.brand);
+      });
+
+      if (filteredProducts.length === 0) {
+        setNoProductsFound(true);
+        setProducts([]); // No products to show, so set an empty array
+        return;
+      }
+
+      // Now we have the filtered products based on brands
+      const productsArray = filteredProducts.map((doc) => {
+        const data = doc.data();
+        data.ID = doc.id;
+        return data;
+      });
+
+      setNoProductsFound(false);
+      setProducts(productsArray);
+    } else {
+      // No brands selected, so fetch all products based on other filters
+      const productsSnapshot = await productsRef.get();
+
+      if (productsSnapshot.empty) {
+        // No products found for the selected filters
+        setNoProductsFound(true);
+        setProducts([]);
+      } else {
+        // Products found for the selected filters
+        const productsArray = productsSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          data.ID = doc.id;
+          return data;
+        });
+
+        setNoProductsFound(false);
+        setProducts(productsArray);
+      }
+    }
   };
 
   useEffect(() => {
     getProducts();
-  }, []);
+  }, [selectedCategory, selectedSubcategories, selectedBrands]);
 
   // State of totalProducts
   const [totalProducts, setTotalProducts] = useState(0);
@@ -92,6 +154,37 @@ export const Home = (props) => {
         });
       }
     });
+  }, []);
+
+  //clean up function
+
+  useEffect(() => {
+    let isMounted = true;
+
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        fs.collection("Products")
+          .get()
+          .then((snapshot) => {
+            const productsArray = snapshot.docs.map((doc) => {
+              const data = doc.data();
+              data.ID = doc.id;
+              return data;
+            });
+
+            if (isMounted) {
+              setProducts(productsArray);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching products: ", error);
+          });
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Add to cart
@@ -112,86 +205,11 @@ export const Home = (props) => {
   };
 
   // Filtered products state and functions
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedSubcategories, setSelectedSubcategories] = useState([]);
-  const [selectedBrands, setSelectedBrands] = useState([]);
 
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
     setSelectedSubcategories([]);
     setSelectedBrands([]);
-
-    let filtered = [];
-    if (category === "All") {
-      filtered = products;
-    } else {
-      filtered = products.filter((product) => product.category === category);
-    }
-    setFilteredProducts(filtered);
-  };
-
-  const handleSubcategoryChange = (subcategory) => {
-    let updatedSubcategories = [];
-    if (selectedSubcategories.includes(subcategory)) {
-      updatedSubcategories = selectedSubcategories.filter(
-        (item) => item !== subcategory
-      );
-    } else {
-      updatedSubcategories = [...selectedSubcategories, subcategory];
-    }
-    setSelectedSubcategories(updatedSubcategories);
-
-    let filtered = products.filter((product) => {
-      if (selectedCategory === "All") {
-        return updatedSubcategories.includes(product.subcategory);
-      } else {
-        return updatedSubcategories.length > 0
-          ? product.category === selectedCategory &&
-              updatedSubcategories.includes(product.subcategory)
-          : product.category === selectedCategory;
-      }
-    });
-    setFilteredProducts(filtered);
-  };
-
-  const handleBrandChange = (brand) => {
-    let updatedBrands = [];
-    if (selectedBrands.includes(brand)) {
-      updatedBrands = selectedBrands.filter((item) => item !== brand);
-    } else {
-      updatedBrands = [...selectedBrands, brand];
-    }
-    setSelectedBrands(updatedBrands);
-
-    let filtered = products.filter((product) => {
-      const isSelectedCategoryAll = selectedCategory === "All";
-      const isSelectedSubcategoriesEmpty = selectedSubcategories.length === 0;
-      const isSelectedBrandsEmpty = updatedBrands.length === 0;
-
-      if (isSelectedCategoryAll && isSelectedSubcategoriesEmpty) {
-        return isSelectedBrandsEmpty
-          ? true
-          : updatedBrands.includes(product.brand);
-      } else if (isSelectedCategoryAll && !isSelectedSubcategoriesEmpty) {
-        return (
-          selectedSubcategories.includes(product.subcategory) &&
-          (isSelectedBrandsEmpty ? true : updatedBrands.includes(product.brand))
-        );
-      } else if (!isSelectedCategoryAll && isSelectedSubcategoriesEmpty) {
-        return (
-          product.category === selectedCategory &&
-          (isSelectedBrandsEmpty ? true : updatedBrands.includes(product.brand))
-        );
-      } else {
-        return (
-          product.category === selectedCategory &&
-          selectedSubcategories.includes(product.subcategory) &&
-          (isSelectedBrandsEmpty ? true : updatedBrands.includes(product.brand))
-        );
-      }
-    });
-    setFilteredProducts(filtered);
   };
 
   return (
@@ -201,31 +219,41 @@ export const Home = (props) => {
         totalProducts={totalProducts}
         handleCategoryChange={handleCategoryChange}
       />
-      <div className="content-container">
-        <div>
-          {selectedCategory !== "" && (
-            <div>
-              <SideBar
-                category={selectedCategory}
-                subcategory={selectedSubcategories}
-                handleSubcategoryChange={handleSubcategoryChange}
-                handleBrandChange={handleBrandChange}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+      <br />
+      {selectedCategory !== "" && (
+        <SideBar
+          selectedCategory={selectedCategory}
+          selectedSubcategories={selectedSubcategories}
+          setSelectedSubcategories={setSelectedSubcategories}
+          selectedBrands={selectedBrands}
+          setSelectedBrands={setSelectedBrands}
+        />
+      )}
       <br />
       <div>{selectedCategory === "" && <Carousal />}</div>
       <div className="container-fluid filter-products-main-box">
-        {filteredProducts.length > 0 ? (
+        {noProductsFound ? ( // Check if no products were found for the selected category
+          <div
+            style={{
+              height: "50vh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginLeft: 400,
+            }}
+          >
+            <h1 style={{ fontWeight: "bold", fontSize: "20px" }}>
+              No products under this category.......
+            </h1>
+          </div>
+        ) : products.length > 0 ? ( // <-- Use 'products' instead of 'filteredProducts'
           <div className="my-products">
             <h1 className="text-center">{selectedCategory}</h1>
             <Button onClick={() => handleCategoryChange("All")}>
               Return to All Products
             </Button>
             <div className="products-box">
-              {filteredProducts.map((individualFilteredProduct) => (
+              {products.map((individualFilteredProduct) => (
                 <IndividualFilteredProduct
                   key={individualFilteredProduct.ID}
                   individualFilteredProduct={individualFilteredProduct}
@@ -243,7 +271,7 @@ export const Home = (props) => {
           </div>
         )}
       </div>
-      <Footer />
+      <Footer style={footerStyle} />
     </>
   );
 };

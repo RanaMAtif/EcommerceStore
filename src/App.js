@@ -5,7 +5,7 @@ import { Login } from "./Components/pages/Login";
 import { Signup } from "./Components/pages/Signup";
 import { Cart } from "./Components/cart/Cart";
 import AdminPanel from "./Components/admin/AdminPanel";
-import AddNewAddprods from "./Components/AddNewAddprods";
+import { SideBar } from "./Components/sideBar/SideBar";
 export const App = () => {
   return (
     <BrowserRouter>
@@ -13,7 +13,7 @@ export const App = () => {
         <Route exact path="/" component={Home} />
         <Route path="/signup" component={Signup} />
         <Route path="/login" component={Login} />
-        <Route path="/addo" component={AddNewAddprods} />
+        <Route path="/side" component={SideBar} />
         <Route path="/admin" component={AdminPanel} />
         <Route path="/cart" component={Cart} />
       </Switch>

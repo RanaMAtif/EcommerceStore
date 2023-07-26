@@ -1,136 +1,163 @@
-import React, { useState } from "react";
-import { storage, fs } from "../../Config/Config";
-export const subcategoryOptions = {
-  Men: ["T_shirts", "Trousers", "Shoes", "Watches", "Hats", "Socks"],
-  Women: ["Dresses", "Tops", "Shoes", "Jewelry", "Handbags", "Scarves"],
-  Fitness: [
-    "Yogamats",
-    "Dumbbells",
-    "Resistancebands",
-    "Barbells",
-    "Treadmills",
-    "Exercisebikes",
-  ],
-  Sports: [
-    "Basketball",
-    "Football",
-    "Cricketball",
-    "Tennisracket",
-    "Golfclubs",
-  ],
-  Electronics: [
-    "Laptops",
-    "Smartphones",
-    "Headphones",
-    "Refrigerator",
-    "Televisions",
-    "Cameras",
-    "Airconditioners",
-  ],
-  Tools: [
-    "Drills",
-    "Screwdrivers",
-    "Toolboxes",
-    "Hammer",
-    "Wrenches",
-    "Measuringtape",
-  ],
-  Groceries: [
-    "Fruits",
-    "Vegetables",
-    "Snacks",
-    "Dairyproducts",
-    "Cannedgoods",
-    "Bakeryitems",
-  ],
-};
-
-export const brandOptions = {
-  Men: {
-    T_shirts: ["Nike", "Adidas", "Puma", "Polo", "Levis"],
-    Trousers: ["Nike", "Adidas", "Puma", "Levis"],
-    Shoes: ["Nike", "Adidas", "Puma"],
-    Watches: ["Rolex", "Casio", "Fossil", "Timex"],
-    Hats: ["New Era", "Adidas", "Under Armour", "Puma"],
-    Socks: ["Nike", "Adidas", "Puma"],
-  },
-  Women: {
-    Dresses: ["Zara", "H&M", "Forever 21", "Mango"],
-    Tops: ["Zara", "H&M", "Forever 21", "Mango"],
-    Shoes: ["Nike", "Adidas", "Puma"],
-    Jewelry: ["Pandora", "Swarovski", "Tiffany & Co", "Kate Spade"],
-    Handbags: ["Michael Kors", "Coach", "Kate Spade"],
-    Scarves: ["Hermes", "Burberry", "Gucci"],
-  },
-  Fitness: {
-    Yogamats: ["Liforme", "Manduka", "Jade Yoga"],
-    Dumbbells: ["Bowflex", "PowerBlock", "CAP Barbell"],
-    Resistance_bands: ["Fit Simplify", "TheraBand", "WODFitters"],
-    Barbells: ["Rogue Fitness", "CAP Barbell", "XMark Fitness"],
-    Treadmills: ["NordicTrack", "ProForm", "Sole Fitness"],
-    Exercise_bikes: ["Peloton", "Schwinn", "Nautilus"],
-  },
-  Sports: {
-    Basketball: ["Nike", "Adidas", "Spalding"],
-    Football: ["Nike", "Adidas", "Wilson"],
-    Cricketball: ["Kookaburra", "Duke", "SG"],
-    Tennisracket: ["Wilson", "Babolat", "Head"],
-    Golfclubs: ["Callaway", "TaylorMade", "Titleist"],
-  },
-  Electronics: {
-    Laptops: ["Apple", "Dell", "HP", "Lenovo"],
-    Smartphones: ["Apple", "Samsung", "Google", "OnePlus"],
-    Headphones: ["Sony", "Bose", "Sennheiser", "JBL"],
-    Refrigerator: ["LG", "Samsung", "Whirlpool"],
-    Televisions: ["Samsung", "LG", "Sony"],
-    Cameras: ["Canon", "Nikon", "Sony"],
-    Airconditioners: ["Daikin", "Carrier", "Mitsubishi"],
-  },
-  Tools: {
-    Drills: ["Bosch", "DeWalt", "Makita"],
-    Screwdrivers: ["Craftsman", "Klein Tools", "Wera"],
-    Toolboxes: ["Stanley", "Husky", "Craftsman"],
-    Hammer: ["Estwing", "Stanley", "Vaughan"],
-    Wrenches: ["Craftsman", "Channellock", "Snap-on"],
-    Measuringtape: ["Stanley", "Komelon", "Lufkin"],
-  },
-  Groceries: {
-    Fruits: ["Apple", "Banana", "Orange", "Grapes"],
-    Vegetables: ["Carrot", "Broccoli", "Tomato", "Spinach"],
-    Snacks: ["Chips", "Cookies", "Popcorn", "Pretzels"],
-    Dairyproducts: ["Milk", "Cheese", "Yogurt", "Butter"],
-    Cannedgoods: ["Soup", "Beans", "Tomatoes", "Tuna"],
-    Bakeryitems: ["Bread", "Bagels", "Croissants", "Muffins"],
-  },
-};
+import React, { useState, useEffect } from "react";
+import { fs, storage } from "../../Config/Config";
+import firebase from "firebase/app";
+import "firebase/firestore";
 
 export const AddProducts = () => {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [brand, setBrand] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-
   const [imageError, setImageError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [uploadError, setUploadError] = useState("");
 
-  const types = ["image/jpg", "image/jpeg", "image/png", "image/PNG"];
+  // Fetch categories from Firestore when the component mounts
+  useEffect(() => {
+    fs.collection("Categories")
+      .get()
+      .then((querySnapshot) => {
+        const categoryList = querySnapshot.docs.map((doc) => doc.id);
+        setCategories(categoryList);
+      })
+      .catch((error) => {
+        console.error("Error fetching categories: ", error);
+      });
+  }, []);
+
+  // Fetch subcategories for the selected category from Firestore
+  useEffect(() => {
+    if (category) {
+      fs.collection("Categories")
+        .doc(category)
+        .get()
+        .then((doc) => {
+          if (doc.exists) {
+            const subcategoryList = Object.keys(doc.data());
+            setSubcategories(subcategoryList);
+          } else {
+            console.log("No subcategories found for this category.");
+            setSubcategories([]);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching subcategories: ", error);
+        });
+    } else {
+      setSubcategories([]);
+    }
+  }, [category]);
+
+  // Fetch brands for the selected subcategory from Firestore
+  useEffect(() => {
+    if (category && subcategory) {
+      fs.collection("Categories")
+        .doc(category)
+        .get()
+        .then((doc) => {
+          if (doc.exists) {
+            const brandsList = doc.data()[subcategory] || [];
+            setBrands(brandsList);
+          } else {
+            console.log("No brands found for this subcategory.");
+            setBrands([]);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching brands: ", error);
+        });
+    } else {
+      setBrands([]);
+    }
+  }, [category, subcategory]);
+
+  const handleAddData = (e) => {
+    e.preventDefault();
+
+    // Add category, subcategory, and brand data to Firestore
+    if (category && (subcategory || brand)) {
+      let subcategoryToAdd = subcategory;
+      if (!subcategories.includes(subcategory)) {
+        // If the subcategory is not in the subcategories list, it's a new value
+        // Add it to the subcategories list
+        subcategoryToAdd = subcategory;
+        setSubcategories([...subcategories, subcategory]);
+      }
+
+      let brandToAdd = brand;
+      if (!brands.includes(brand)) {
+        // If the brand is not in the brands list, it's a new value
+        // Add it to the brands list
+        brandToAdd = brand;
+        setBrands([...brands, brand]);
+      }
+
+      // Check if the selected category is already in the categories list
+      if (!categories.includes(category)) {
+        // If the category is not in the categories list, it's a new value
+        // Add it to the categories list
+        fs.collection("Categories")
+          .doc(category)
+          .set({ [subcategoryToAdd]: [brandToAdd] })
+          .then(() => {
+            console.log("Category added to Firestore successfully!");
+            setCategories([...categories, category]);
+            setSubcategories([...subcategories, subcategory]);
+            setBrands([...brands, brand]);
+          })
+          .catch((error) => {
+            console.error("Error adding category to Firestore: ", error);
+          });
+      } else {
+        // Category already exists, update the subcategory and brand
+        fs.collection("Categories")
+          .doc(category)
+          .set(
+            {
+              [subcategoryToAdd]:
+                firebase.firestore.FieldValue.arrayUnion(brandToAdd),
+            },
+            { merge: true }
+          )
+          .then(() => {
+            console.log("Data added to Firestore successfully!");
+            setSubcategories([...subcategories, subcategory]);
+            setBrands([...brands, brand]);
+          })
+          .catch((error) => {
+            console.error("Error adding data to Firestore: ", error);
+          });
+      }
+
+      // Clear the form fields after successful update
+      setCategory("");
+      setSubcategory("");
+      setBrand("");
+    } else {
+      console.log("Please enter values for all fields.");
+    }
+  };
 
   const handleProductImg = (e) => {
     let selectedFile = e.target.files[0];
     if (selectedFile) {
-      if (selectedFile && types.includes(selectedFile.type)) {
+      if (selectedFile && selectedFile.type.includes("image")) {
         setImage(selectedFile);
         setImageError("");
         // Create an image preview URL and set it in the state
         setImagePreview(URL.createObjectURL(selectedFile));
       } else {
         setImage(null);
-        setImageError("Please select a valid image file type (png or jpg)");
+        setImageError(
+          "Please select a valid image file type (png, jpg, or jpeg)"
+        );
         // Clear the image preview when there is an error
         setImagePreview(null);
       }
@@ -141,70 +168,94 @@ export const AddProducts = () => {
     }
   };
 
-  const handleAddProducts = (e) => {
+  const handleAddProduct = (e) => {
     e.preventDefault();
 
-    const uploadTask = storage.ref(`product-images/${image.name}`).put(image);
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log(progress);
-      },
-      (error) => setUploadError(error.message),
-      () => {
-        storage
-          .ref("product-images")
-          .child(image.name)
-          .getDownloadURL()
-          .then((url) => {
-            fs.collection("Products")
-              .add({
-                title,
-                description,
-                category,
-                subcategory,
-                brand,
-                price: Number(price),
-                url,
-              })
-              .then(() => {
-                setSuccessMsg("Product added successfully");
-                setTitle("");
-                setDescription("");
-                setCategory("");
-                setSubcategory("");
-                setBrand("");
-                setPrice("");
-                document.getElementById("file").value = "";
-                setImageError("");
-                setUploadError("");
-                setTimeout(() => {
-                  setSuccessMsg("");
-                }, 3000);
-              })
-              .catch((error) => setUploadError(error.message));
-          });
-      }
-    );
-  };
+    if (
+      category &&
+      subcategory &&
+      brand &&
+      title &&
+      description &&
+      price &&
+      image
+    ) {
+      const uploadTask = storage.ref(`product-images/${image.name}`).put(image);
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log(progress);
+        },
+        (error) => setUploadError(error.message),
+        () => {
+          storage
+            .ref("product-images")
+            .child(image.name)
+            .getDownloadURL()
+            .then((url) => {
+              // Add the product data to the 'Products' collection
+              fs.collection("Products")
+                .add({
+                  title,
+                  description,
+                  category,
+                  subcategory,
+                  brand,
+                  price: Number(price),
+                  url,
+                })
+                .then(() => {
+                  // After adding the product, update the 'Categories' collection
+                  const batch = fs.batch();
+                  const categoryRef = fs.collection("Categories").doc(category);
 
-  const handleCategoryChange = (e) => {
-    const selectedCategory = e.target.value;
-    setCategory(selectedCategory);
-    setSubcategory("");
-    setBrand("");
-  };
+                  // Check if the subcategory exists in the current category
+                  if (!subcategories.includes(subcategory)) {
+                    batch.update(categoryRef, { [subcategory]: [] });
+                  }
 
-  const handleSubcategoryChange = (e) => {
-    const selectedSubcategory = e.target.value;
-    setSubcategory(selectedSubcategory);
-    setBrand("");
+                  // Check if the brand exists in the current subcategory
+                  if (!brands.includes(brand)) {
+                    batch.update(categoryRef, {
+                      [subcategory]:
+                        firebase.firestore.FieldValue.arrayUnion(brand),
+                    });
+                  }
+
+                  // Commit the batch update
+                  return batch.commit();
+                })
+                .then(() => {
+                  setSuccessMsg("Product added successfully");
+                  setTitle("");
+                  setDescription("");
+                  setPrice("");
+                  setImage(null);
+                  setImagePreview(null);
+                  setCategory("");
+                  setSubcategory("");
+                  setBrand("");
+                  setImageError("");
+                  setTimeout(() => {
+                    setSuccessMsg("");
+                  }, 3000);
+                })
+                .catch((error) => setUploadError(error.message));
+            });
+        }
+      );
+    } else {
+      console.log("Please fill in all product details.");
+    }
   };
 
   return (
     <div className="container">
+      <form onSubmit={handleAddData}>
+        {/* The form fields for adding category, subcategory, and brand */}
+      </form>
       <br />
       <br />
       <h1>Add Products</h1>
@@ -218,7 +269,7 @@ export const AddProducts = () => {
       <form
         autoComplete="off"
         className="form-group"
-        onSubmit={handleAddProducts}
+        onSubmit={handleAddProduct}
       >
         <label>Product Title</label>
         <input
@@ -228,10 +279,10 @@ export const AddProducts = () => {
           onChange={(e) => setTitle(e.target.value)}
           value={title}
         />
+        {/* Add other product details fields here */}
         <br />
         <label>Product Description</label>
-        <input
-          type="text"
+        <textarea
           className="form-control"
           required
           onChange={(e) => setDescription(e.target.value)}
@@ -247,52 +298,52 @@ export const AddProducts = () => {
           value={price}
         />
         <br />
-        <label>Product Category</label>
+        <label>Category:</label>
         <select
           className="form-control"
           required
           value={category}
-          onChange={handleCategoryChange}
+          onChange={(e) => setCategory(e.target.value)}
         >
-          <option value="">Select Product Category</option>
-          <option value="Men">Men</option>
-          <option value="Women">Women</option>
-          <option value="Fitness">Fitness</option>
-          <option value="Sports">Sports</option>
-          <option value="Electronics">Electronics</option>
-          <option value="Tools">Tools</option>
-          <option value="Groceries">Groceries</option>
-        </select>
-        <br />
-        <label>Product Subcategory</label>
-        <select
-          className="form-control"
-          required
-          value={subcategory}
-          onChange={handleSubcategoryChange}
-        >
-          <option value="">Select Product Subcategory</option>
-          {subcategoryOptions[category]?.map((option) => (
-            <option key={option} value={option}>
-              {option}
+          <option value="">Select Category</option>
+          {categories.map((category) => (
+            <option key={category} value={category}>
+              {category}
             </option>
           ))}
         </select>
         <br />
-        <label>Product Brand</label>
-        <select
+        <label>Subcategory:</label>
+        <input
+          type="text"
+          className="form-control"
+          required
+          value={subcategory}
+          onChange={(e) => setSubcategory(e.target.value)}
+          list="subcategoryList" // Add list attribute for datalist
+        />
+        {/* Datalist for available subcategories */}
+        <datalist id="subcategoryList">
+          {subcategories.map((subcat) => (
+            <option key={subcat} value={subcat} />
+          ))}
+        </datalist>
+        <br />
+        <label>Brand:</label>
+        <input
+          type="text"
           className="form-control"
           required
           value={brand}
           onChange={(e) => setBrand(e.target.value)}
-        >
-          <option value="">Select Product Brand</option>
-          {brandOptions[category]?.[subcategory]?.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
+          list="brandList" // Add list attribute for datalist
+        />
+        {/* Datalist for available brands */}
+        <datalist id="brandList">
+          {brands.map((brand) => (
+            <option key={brand} value={brand} />
           ))}
-        </select>
+        </datalist>
         <br />
         <label>Upload Product Image</label>
         <input
@@ -309,19 +360,17 @@ export const AddProducts = () => {
             style={{ width: "200px" }}
           />
         )}
-
         {imageError && (
           <>
             <br />
             <div className="error-msg">{imageError}</div>
           </>
         )}
-
         <br />
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button type="submit" className="btn btn-success btn-md">
             SUBMIT
-          </button>a
+          </button>
         </div>
       </form>
       {uploadError && (
