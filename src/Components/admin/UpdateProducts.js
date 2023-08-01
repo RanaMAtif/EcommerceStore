@@ -4,7 +4,7 @@ import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import {
   ref,
   deleteObject,
-  uploadString,
+  uploadBytes,
   getDownloadURL,
 } from "firebase/storage";
 import EditIcon from "@mui/icons-material/Edit";
@@ -15,6 +15,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import Tooltip from "@mui/material/Tooltip";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 const ModalContainer = styled("div")({
   display: "flex",
   alignItems: "center",
@@ -53,6 +54,7 @@ export const UpdateProducts = () => {
   const [updatedImage, setUpdatedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [previousImageUrl, setPreviousImageUrl] = useState(null);
+
   // Fetch products from Firestore whenever the searchTerm changes
   useEffect(() => {
     fetchProducts();
@@ -95,12 +97,11 @@ export const UpdateProducts = () => {
           storage,
           `product_images/${updatedProductData.image.name}`
         );
-        // Upload the image as a base64 data URL
-        await uploadString(imageRef, updatedProductData.image, "data_url");
+        await uploadBytes(imageRef, updatedProductData.image);
         // Get the download URL of the uploaded image
         const url = await getDownloadURL(imageRef);
         // Update the product data with the new image URL
-        updatedProductData.image = url;
+        updatedProductData.url = url;
       }
 
       // Update the product data in Firestore with the new image URL if available
@@ -120,7 +121,7 @@ export const UpdateProducts = () => {
     }
   };
 
-  // Function to handle the search term chaxnge
+  // Function to handle the search term change
   const handleSearchTermChange = (e) => {
     setSearchTerm(e.target.value);
   };
@@ -142,47 +143,44 @@ export const UpdateProducts = () => {
   };
 
   // Function to handle the modal form submission
-  const handleModalSubmit = (e) => {
+  const handleModalSubmit = async (e) => {
     e.preventDefault();
     setImagePreview(null);
+
     if (selectedProduct) {
       const updatedProductData = {
         title: updatedTitle,
         description: updatedDescription,
         price: Number(updatedPrice),
+        image: updatedImage, // Save the File object instead of the Data URL
       };
 
       // If a new image is uploaded, delete the previous image and update the URL
       if (updatedImage) {
-        const previousImageRef = storage.refFromURL(previousImageUrl);
-        previousImageRef
-          .delete()
-          .then(() => {
-            console.log("Previous product image deleted successfully");
+        const previousImageRef = ref(storage, previousImageUrl);
 
-            // Upload the new image to Firebase Storage and get the URL
-            const imageRef = storage
-              .ref()
-              .child(`product-images/${updatedImage.name}`);
-            imageRef
-              .put(updatedImage)
-              .then((snapshot) => snapshot.ref.getDownloadURL())
-              .then((url) => {
-                // Update the product data in Firestore with the new image URL
-                updatedProductData.url = url;
-                handleUpdate(
-                  selectedProduct.id,
-                  updatedProductData,
-                  previousImageUrl
-                );
-              })
-              .catch((error) =>
-                console.error("Error uploading image: ", error)
-              );
-          })
-          .catch((error) =>
-            console.error("Error deleting previous product image: ", error)
+        try {
+          await deleteObject(previousImageRef);
+          console.log("Previous product image deleted successfully"); 
+
+          // Upload the new image to Firebase Storage and get the URL
+          const imageRef = ref(
+            storage,
+            `product_images/${updatedProductData.image.name}`
           );
+          await uploadBytes(imageRef, updatedProductData.image);
+          const url = await getDownloadURL(imageRef);
+
+          // Update the product data in Firestore with the new image URL
+          updatedProductData.url = url;
+          handleUpdate(
+            selectedProduct.id,
+            updatedProductData,
+            previousImageUrl
+          );
+        } catch (error) {
+          console.error("Error updating product: ", error);
+        }
       } else {
         // If no new image is uploaded, simply update the product data in Firestore
         handleUpdate(selectedProduct.id, updatedProductData, previousImageUrl);
@@ -194,6 +192,7 @@ export const UpdateProducts = () => {
   const filteredProducts = products.filter((product) =>
     product.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
   useEffect(() => {
     if (updatedImage) {
       const objectURL = URL.createObjectURL(updatedImage);

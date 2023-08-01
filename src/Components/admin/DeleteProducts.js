@@ -29,6 +29,7 @@ export const DeleteProducts = () => {
       console.error("Error fetching products: ", error);
     }
   };
+
   const handleDelete = async (productId, imageUrl) => {
     try {
       // Delete the product image from Firebase Storage
@@ -49,6 +50,7 @@ export const DeleteProducts = () => {
       console.error("Error deleting product: ", error);
     }
   };
+
   const filteredProducts = products.filter((product) =>
     product.title.toLowerCase().includes(searchTerm.toLowerCase())
   );

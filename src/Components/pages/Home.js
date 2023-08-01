@@ -281,7 +281,7 @@ export const Home = (props) => {
               No products under this category.......
             </h1>
           </div>
-        ) : products.length > 0 ? ( // <-- Use 'products' instead of 'filteredProducts'
+        ) : products.length > 0 ? (
           <div className="my-products">
             <h1 className="text-center">{selectedCategory}</h1>
             <Button onClick={() => handleCategoryChange("All")}>
