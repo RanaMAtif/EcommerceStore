@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { storage } from "../../Config/Config";
+import { getStorage, ref, list, getDownloadURL, deleteObject, uploadBytes } from "firebase/storage";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -82,14 +82,6 @@ const Input = styled("input")({
   display: "none",
 });
 
-// const ButtonStyled = styled(Button)({
-//   backgroundColor: (props) => props.theme.palette.primary.main,
-//   color: (props) => props.theme.palette.common.white,
-//   "&:hover": {
-//     backgroundColor: (props) => props.theme.palette.primary.dark,
-//   },
-// });
-
 const ImagePreview = styled("div")({
   marginTop: "10px",
   width: "200px",
@@ -111,23 +103,24 @@ function HandleCarousal() {
   const [selectedDeleteImageUrl, setSelectedDeleteImageUrl] = useState("");
 
   useEffect(() => {
-    const fetchImagesList = async () => {
-      try {
-        const imagesRef = storage.ref("carousel-images");
-        const listResult = await imagesRef.listAll();
-
-        const imageNames = listResult.items.map((item) => item.name);
-        setImagesList(imageNames);
-      } catch (error) {
-        console.error(
-          "Error fetching images list from Firebase Storage:",
-          error
-        );
-      }
-    };
-
     fetchImagesList();
   }, []);
+
+  const fetchImagesList = async () => {
+    try {
+      const storage = getStorage();
+      const listRef = ref(storage, "carousel-images");
+
+      // Fetch the first page of 100 items.
+      const firstPage = await list(listRef, { maxResults: 100 });
+
+      // Process the items (files) found in the directory.
+      const imageNames = firstPage.items.map((item) => item.name);
+      setImagesList(imageNames);
+    } catch (error) {
+      console.error("Error fetching images list from Firebase Storage:", error);
+    }
+  };
 
   const handleImageChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -142,80 +135,43 @@ function HandleCarousal() {
     } else {
       setSelectedImageUrl("");
     }
-
-    console.log("Image is selected");
   };
 
-  const handleAddImage = () => {
+  const handleAddImage = async () => {
     if (image) {
-      const uploadTask = storage
-        .ref(`carousel-images/${image.name}`)
-        .put(image);
-      uploadTask.on(
-        "state_changed",
-        null,
-        (error) => {
-          console.error("Error uploading image:", error);
-          toast.error("Failed to upload image");
-        },
-        () => {
-          console.log("Image Added Successfully");
-          toast.success("Image added to the Carousal");
-          setImage(null);
-          setSelectedImage(""); // Reset the selectedImage
-          setSelectedImageUrl("");
-          // Fetch the updated list of images after addition
-          const fetchUpdatedImagesList = async () => {
-            try {
-              const updatedImagesRef = storage.ref("carousel-images");
-              const updatedListResult = await updatedImagesRef.listAll();
+      try {
+        const storage = getStorage();
+        const imageRef = ref(storage, `carousel-images/${image.name}`);
 
-              const updatedImageNames = updatedListResult.items.map(
-                (item) => item.name
-              );
-              setImagesList(updatedImageNames);
-            } catch (error) {
-              console.error(
-                "Error fetching images list from Firebase Storage:",
-                error
-              );
-            }
-          };
-          fetchUpdatedImagesList();
-        }
-      );
+        await uploadBytes(imageRef, image);
+
+        console.log("Image Added Successfully");
+        toast.success("Image added to the Carousal");
+        setImage(null);
+        setSelectedImage(""); // Reset the selectedImage
+        setSelectedImageUrl("");
+        // Fetch the updated list of images after addition
+        await fetchImagesList();
+      } catch (error) {
+        console.error("Error adding image:", error);
+        toast.error("Failed to add image");
+      }
     }
   };
 
   const handleDeleteImage = () => {
     console.log("Image delete clicked");
     if (selectedDeleteImage) {
-      const imageRef = storage.ref(`carousel-images/${selectedDeleteImage}`);
-      imageRef
-        .delete()
+      const storage = getStorage();
+      const imageRef = ref(storage, `carousel-images/${selectedDeleteImage}`);
+      deleteObject(imageRef)
         .then(() => {
           console.log("Image deleted successfully");
           toast.success("Image deleted successfully");
           setSelectedDeleteImage("");
           setSelectedDeleteImageUrl("");
           // Fetch the updated list of images after deletion
-          const fetchUpdatedImagesList = async () => {
-            try {
-              const updatedImagesRef = storage.ref("carousel-images");
-              const updatedListResult = await updatedImagesRef.listAll();
-
-              const updatedImageNames = updatedListResult.items.map(
-                (item) => item.name
-              );
-              setImagesList(updatedImageNames);
-            } catch (error) {
-              console.error(
-                "Error fetching images list from Firebase Storage:",
-                error
-              );
-            }
-          };
-          fetchUpdatedImagesList();
+          fetchImagesList();
         })
         .catch((error) => {
           console.error("Error deleting image:", error);
@@ -297,9 +253,9 @@ function HandleCarousal() {
             onChange={(e) => {
               const imageName = e.target.value;
               setSelectedDeleteImage(imageName);
-              const imageUrl = storage.ref(`carousel-images/${imageName}`);
-              imageUrl
-                .getDownloadURL()
+              const storage = getStorage();
+              const imageUrl = ref(storage, `carousel-images/${imageName}`);
+              getDownloadURL(imageUrl)
                 .then((url) => {
                   setSelectedDeleteImageUrl(url);
                 })
@@ -309,6 +265,9 @@ function HandleCarousal() {
                 });
             }}
           >
+            <MenuItem value="">
+              <em>None</em>
+            </MenuItem>
             {imagesList.map((imageName) => (
               <MenuItem key={imageName} value={imageName}>
                 {imageName}

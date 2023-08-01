@@ -49,9 +49,9 @@ export const AddProducts = () => {
     if (category) {
       const fetchSubcategories = async () => {
         try {
-          // const docRef = doc(fs, "Categories", category);
-          const docSnap = await getDoc(doc(fs, "Categories", category));
-
+          const docRef = doc(fs, "Categories", category);
+          const docSnap = await getDoc(docRef);
+      
           if (docSnap.exists()) {
             const subcategoryList = Object.keys(docSnap.data());
             setSubcategories(subcategoryList);
@@ -75,9 +75,9 @@ export const AddProducts = () => {
     if (category && subcategory) {
       const fetchBrands = async () => {
         try {
-          // const docRef = doc(fs, "Categories", category);
-          const docSnap = await getDoc(doc(fs, "Categories", category));
-
+          const docRef = doc(fs, "Categories", category);
+          const docSnap = await getDoc(docRef);
+      
           if (docSnap.exists()) {
             const brandsList = docSnap.data()[subcategory] || [];
             setBrands(brandsList);
@@ -89,6 +89,7 @@ export const AddProducts = () => {
           console.error("Error fetching brands: ", error);
         }
       };
+      
 
       fetchBrands();
     } else {
@@ -98,7 +99,7 @@ export const AddProducts = () => {
 
   const handleAddData = (e) => {
     e.preventDefault();
-
+  
     // Add category, subcategory, and brand data to Firestore
     if (category && (subcategory || brand)) {
       let subcategoryToAdd = subcategory;
@@ -108,7 +109,7 @@ export const AddProducts = () => {
         subcategoryToAdd = subcategory;
         setSubcategories([...subcategories, subcategory]);
       }
-
+  
       let brandToAdd = brand;
       if (!brands.includes(brand)) {
         // If the brand is not in the brands list, it's a new value
@@ -116,7 +117,7 @@ export const AddProducts = () => {
         brandToAdd = brand;
         setBrands([...brands, brand]);
       }
-
+  
       // Check if the selected category is already in the categories list
       if (!categories.includes(category)) {
         // If the category is not in the categories list, it's a new value
@@ -135,7 +136,8 @@ export const AddProducts = () => {
           });
       } else {
         // Category already exists, update the subcategory and brand
-        updateDoc(doc(fs, "Categories", category), {
+        const docRef = doc(fs, "Categories", category);
+        updateDoc(docRef, {
           [subcategoryToAdd]: arrayUnion(brandToAdd),
         })
           .then(() => {
@@ -147,7 +149,7 @@ export const AddProducts = () => {
             console.error("Error adding data to Firestore: ", error);
           });
       }
-
+  
       // Clear the form fields after successful update
       setCategory("");
       setSubcategory("");
@@ -156,6 +158,7 @@ export const AddProducts = () => {
       console.log("Please enter values for all fields.");
     }
   };
+  
 
   const handleProductImg = (e) => {
     let selectedFile = e.target.files[0];
