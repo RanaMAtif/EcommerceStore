@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { fs, storage } from "../../Config/Config";
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import {
+  ref,
+  deleteObject,
+  uploadString,
+  getDownloadURL,
+} from "firebase/storage";
 import EditIcon from "@mui/icons-material/Edit";
 import { Modal, TextField, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -51,77 +58,65 @@ export const UpdateProducts = () => {
     fetchProducts();
   }, [searchTerm]);
 
-  const fetchProducts = () => {
-    fs.collection("Products")
-      .get()
-      .then((snapshot) => {
-        const productsList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setProducts(productsList);
-      })
-      .catch((error) => console.error("Error fetching products: ", error));
+  const fetchProducts = async () => {
+    try {
+      const productsSnapshot = await getDocs(collection(fs, "Products"));
+      const productsList = productsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setProducts(productsList);
+    } catch (error) {
+      console.error("Error fetching products: ", error);
+    }
   };
 
   // Function to update the product in Firestore based on its ID
-  const handleUpdate = (productId, updatedProductData, previousImageUrl) => {
-    // ... other code ...
-
-    if (updatedProductData.image) {
+  const handleUpdate = async (
+    productId,
+    updatedProductData,
+    previousImageUrl
+  ) => {
+    try {
       // If a new image is uploaded, delete the previous image from Firebase Storage
-      if (previousImageUrl) {
-        const previousImageRef = storage.refFromURL(previousImageUrl);
-        previousImageRef
-          .delete()
-          .then(() => {
-            console.log("Previous product image deleted successfully");
-          })
-          .catch((error) => {
-            console.error("Error deleting previous product image: ", error);
-          });
-      } else {
-        console.log("Something wrong with previousImageUrl");
+      if (updatedProductData.image) {
+        if (previousImageUrl) {
+          // Create a reference to the previous image in Firebase Storage
+          const previousImageRef = ref(storage, previousImageUrl);
+          // Delete the previous image
+          await deleteObject(previousImageRef);
+          console.log("Previous product image deleted successfully");
+        } else {
+          console.log("Something wrong with previousImageUrl");
+        }
+
+        // Upload the new image to Firebase Storage and get the URL
+        const imageRef = ref(
+          storage,
+          `product_images/${updatedProductData.image.name}`
+        );
+        // Upload the image as a base64 data URL
+        await uploadString(imageRef, updatedProductData.image, "data_url");
+        // Get the download URL of the uploaded image
+        const url = await getDownloadURL(imageRef);
+        // Update the product data with the new image URL
+        updatedProductData.image = url;
       }
 
-      // Upload the new image to Firebase Storage and get the URL
-      const imageRef = storage
-        .ref()
-        .child(`product_images/${updatedProductData.image.name}`);
-      imageRef
-        .put(updatedProductData.image)
-        .then((snapshot) => snapshot.ref.getDownloadURL())
-        .then((url) => {
-          updatedProductData.image = url;
-          // Update the product data in Firestore with the new image URL
-          fs.collection("Products")
-            .doc(productId)
-            .update(updatedProductData)
-            .then(() => {
-              console.log("Product updated successfully");
-              toast.success("Product Updated Successfully");
-              // After successful update, fetch the updated products
-              fetchProducts();
-              // Close the modal
-              setOpenModal(false);
-            })
-            .catch((error) => console.error("Error updating product: ", error));
-        })
-        .catch((error) => console.error("Error uploading image: ", error));
-    } else {
-      // If no new image is uploaded, simply update the product data in Firestore
-      fs.collection("Products")
-        .doc(productId)
-        .update(updatedProductData)
-        .then(() => {
-          console.log("Product updated successfully");
-          toast.success("Product Updated Successfully");
-          // After successful update, fetch the updated products
-          fetchProducts();
-          // Close the modal
-          setOpenModal(false);
-        })
-        .catch((error) => console.error("Error updating product: ", error));
+      // Update the product data in Firestore with the new image URL if available
+      const productRef = doc(fs, "Products", productId);
+      // Use updateDoc to update the document with the new data
+      await updateDoc(productRef, updatedProductData);
+      console.log("Product updated successfully");
+      toast.success("Product Updated Successfully");
+
+      // After successful update, fetch the updated products
+      fetchProducts();
+
+      // Close the modal
+      setOpenModal(false);
+    } catch (error) {
+      console.error("Error updating product: ", error);
     }
   };
 

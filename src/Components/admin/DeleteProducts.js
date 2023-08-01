@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { fs, storage } from "../../Config/Config";
+import { getDocs, doc, collection, deleteDoc } from "firebase/firestore";
+import { ref, deleteObject } from "firebase/storage";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { IconButton, Tooltip } from "@mui/material";
 import { toast } from "react-toastify";
@@ -14,58 +16,45 @@ export const DeleteProducts = () => {
     fetchProducts();
   }, [searchTerm]);
 
-  const fetchProducts = () => {
-    // Fetch all products from Firestore collection "Products"
-    fs.collection("Products")
-      .get()
-      .then((snapshot) => {
-        const productsList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setProducts(productsList);
-      })
-      .catch((error) => console.error("Error fetching products: ", error));
-  };
-
-  const handleDelete = (productId, imageUrl) => {
-    // Delete the product image from Firebase Storage
-    if (imageUrl) {
-      const storageRef = storage.refFromURL(imageUrl); // Corrected line
-      storageRef
-        .delete()
-        .then(() => {
-          console.log("Product image deleted successfully from Firebase Storage");
-        })
-        .catch((error) => {
-          console.error("Error deleting product image: ", error);
-        });
-    } else {
-      console.log("Image URL is empty, not entering if block");
+  const fetchProducts = async () => {
+    try {
+      // Fetch all products from Firestore collection "Products"
+      const productsSnapshot = await getDocs(collection(fs, "Products"));
+      const productsList = productsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setProducts(productsList);
+    } catch (error) {
+      console.error("Error fetching products: ", error);
     }
-  
-    // Delete the product with the given ID from Firestore
-    fs.collection("Products")
-      .doc(productId)
-      .delete()
-      .then(() => {
-        toast.success("Product Deleted Successfully");
-        // After successful deletion, update the products list
-        fetchProducts();
-      })
-      .catch((error) => {
-        console.error("Error deleting product: ", error);
-      });
+  };
+  const handleDelete = async (productId, imageUrl) => {
+    try {
+      // Delete the product image from Firebase Storage
+      if (imageUrl) {
+        const storageRef = ref(storage, imageUrl);
+        await deleteObject(storageRef);
+        console.log("Product image deleted successfully from Firebase Storage");
+      } else {
+        console.log("Image URL is empty, not entering if block");
+      }
+
+      // Delete the product with the given ID from Firestore
+      await deleteDoc(doc(fs, "Products", productId));
+      toast.success("Product Deleted Successfully");
+      // After successful deletion, update the products list
+      fetchProducts();
+    } catch (error) {
+      console.error("Error deleting product: ", error);
+    }
   };
   const filteredProducts = products.filter((product) =>
     product.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div
-      className="container"
-      
-    >
+    <div className="container">
       <div style={{ textAlign: "center", marginTop: "20px" }}>
         <h1>Delete Products</h1>
         <hr />

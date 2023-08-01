@@ -15,6 +15,8 @@ import logsigd from "../../Images/logsigd.png";
 import logsige from "../../Images/logsige.png";
 import logsigf from "../../Images/logsigf.png";
 import { Grid } from "@mui/material";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import {doc, setDoc } from "firebase/firestore";
 
 const imageUrls = [logsiga, logsigb, lodsigc, logsigd, logsige, logsigf];
 const initialValues = {
@@ -48,19 +50,17 @@ export const Signup = () => {
 
   const handleSignup = (values) => {
     const { firstName, lastName, email, password } = values;
-
-    auth
-      .createUserWithEmailAndPassword(email, password)
-      .then((credentials) => {
-        console.log(credentials);
-        fs.collection("users")
-          .doc(credentials.user.uid)
-          .set({
-            FirstName: firstName,
-            LastName: lastName,
-            Email: email,
-            Password: password,
-          })
+    createUserWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        console.log(user);
+  
+        setDoc(doc(fs, "users", user.uid), {
+          FirstName: firstName,
+          LastName: lastName,
+          Email: email,
+          Password: password,
+        })
           .then(() => {
             setSuccessMsg(
               "Signup Successful. You will now automatically get redirected to Login"
@@ -76,10 +76,6 @@ export const Signup = () => {
       .catch((error) => {
         setErrorMsg(error.message);
       });
-  };
-
-  const onLoginClick = () => {
-    history.push("/login");
   };
   return (
     <Grid

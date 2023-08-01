@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { fs, storage } from "../../Config/Config";
-import firebase from "firebase/app";
-import "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
+import { ref, uploadBytesResumable } from "firebase/storage";
 
 export const AddProducts = () => {
   const [categories, setCategories] = useState([]);
@@ -21,35 +29,42 @@ export const AddProducts = () => {
 
   // Fetch categories from Firestore when the component mounts
   useEffect(() => {
-    fs.collection("Categories")
-      .get()
-      .then((querySnapshot) => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesRef = collection(fs, "Categories");
+        const querySnapshot = await getDocs(categoriesRef);
+
         const categoryList = querySnapshot.docs.map((doc) => doc.id);
         setCategories(categoryList);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Error fetching categories: ", error);
-      });
+      }
+    };
+
+    fetchCategories();
   }, []);
 
   // Fetch subcategories for the selected category from Firestore
   useEffect(() => {
     if (category) {
-      fs.collection("Categories")
-        .doc(category)
-        .get()
-        .then((doc) => {
-          if (doc.exists) {
-            const subcategoryList = Object.keys(doc.data());
+      const fetchSubcategories = async () => {
+        try {
+          // const docRef = doc(fs, "Categories", category);
+          const docSnap = await getDoc(doc(fs, "Categories", category));
+
+          if (docSnap.exists()) {
+            const subcategoryList = Object.keys(docSnap.data());
             setSubcategories(subcategoryList);
           } else {
             console.log("No subcategories found for this category.");
             setSubcategories([]);
           }
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error("Error fetching subcategories: ", error);
-        });
+        }
+      };
+
+      fetchSubcategories();
     } else {
       setSubcategories([]);
     }
@@ -58,21 +73,24 @@ export const AddProducts = () => {
   // Fetch brands for the selected subcategory from Firestore
   useEffect(() => {
     if (category && subcategory) {
-      fs.collection("Categories")
-        .doc(category)
-        .get()
-        .then((doc) => {
-          if (doc.exists) {
-            const brandsList = doc.data()[subcategory] || [];
+      const fetchBrands = async () => {
+        try {
+          // const docRef = doc(fs, "Categories", category);
+          const docSnap = await getDoc(doc(fs, "Categories", category));
+
+          if (docSnap.exists()) {
+            const brandsList = docSnap.data()[subcategory] || [];
             setBrands(brandsList);
           } else {
             console.log("No brands found for this subcategory.");
             setBrands([]);
           }
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error("Error fetching brands: ", error);
-        });
+        }
+      };
+
+      fetchBrands();
     } else {
       setBrands([]);
     }
@@ -103,9 +121,9 @@ export const AddProducts = () => {
       if (!categories.includes(category)) {
         // If the category is not in the categories list, it's a new value
         // Add it to the categories list
-        fs.collection("Categories")
-          .doc(category)
-          .set({ [subcategoryToAdd]: [brandToAdd] })
+        setDoc(doc(fs, "Categories", category), {
+          [subcategoryToAdd]: [brandToAdd],
+        })
           .then(() => {
             console.log("Category added to Firestore successfully!");
             setCategories([...categories, category]);
@@ -117,15 +135,9 @@ export const AddProducts = () => {
           });
       } else {
         // Category already exists, update the subcategory and brand
-        fs.collection("Categories")
-          .doc(category)
-          .set(
-            {
-              [subcategoryToAdd]:
-                firebase.firestore.FieldValue.arrayUnion(brandToAdd),
-            },
-            { merge: true }
-          )
+        updateDoc(doc(fs, "Categories", category), {
+          [subcategoryToAdd]: arrayUnion(brandToAdd),
+        })
           .then(() => {
             console.log("Data added to Firestore successfully!");
             setSubcategories([...subcategories, subcategory]);
@@ -168,7 +180,7 @@ export const AddProducts = () => {
     }
   };
 
-  const handleAddProduct = (e) => {
+  const handleAddProduct = async (e) => {
     e.preventDefault();
 
     if (
@@ -180,72 +192,62 @@ export const AddProducts = () => {
       price &&
       image
     ) {
-      const uploadTask = storage.ref(`product-images/${image.name}`).put(image);
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log(progress);
-        },
-        (error) => setUploadError(error.message),
-        () => {
-          storage
-            .ref("product-images")
-            .child(image.name)
-            .getDownloadURL()
-            .then((url) => {
-              // Add the product data to the 'Products' collection
-              fs.collection("Products")
-                .add({
-                  title,
-                  description,
-                  category,
-                  subcategory,
-                  brand,
-                  price: Number(price),
-                  url,
-                })
-                .then(() => {
-                  // After adding the product, update the 'Categories' collection
-                  const batch = fs.batch();
-                  const categoryRef = fs.collection("Categories").doc(category);
+      try {
+        // Upload the image to Firebase Storage
+        const storageRef = ref(storage, `product-images/${image.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, image);
 
-                  // Check if the subcategory exists in the current category
-                  if (!subcategories.includes(subcategory)) {
-                    batch.update(categoryRef, { [subcategory]: [] });
-                  }
+        uploadTask.on(
+          "state_changed",
+          (snapshot) => {
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log(progress);
+          },
+          (error) => setUploadError(error.message),
+          async () => {
+            try {
+              // Get the download URL of the uploaded image
 
-                  // Check if the brand exists in the current subcategory
-                  if (!brands.includes(brand)) {
-                    batch.update(categoryRef, {
-                      [subcategory]:
-                        firebase.firestore.FieldValue.arrayUnion(brand),
-                    });
-                  }
+              // After adding the product, update the 'Categories' collection
+              const categoryRef = collection(fs, "Categories").doc(category);
 
-                  // Commit the batch update
-                  return batch.commit();
-                })
-                .then(() => {
-                  setSuccessMsg("Product added successfully");
-                  setTitle("");
-                  setDescription("");
-                  setPrice("");
-                  setImage(null);
-                  setImagePreview(null);
-                  setCategory("");
-                  setSubcategory("");
-                  setBrand("");
-                  setImageError("");
-                  setTimeout(() => {
-                    setSuccessMsg("");
-                  }, 3000);
-                })
-                .catch((error) => setUploadError(error.message));
-            });
-        }
-      );
+              // Check if the subcategory exists in the current category
+              if (!subcategories.includes(subcategory)) {
+                await updateDoc(categoryRef, { [subcategory]: [] });
+              }
+
+              // Check if the brand exists in the current subcategory
+              if (!brands.includes(brand)) {
+                await updateDoc(categoryRef, {
+                  [subcategory]: arrayUnion(brand),
+                });
+              }
+
+              // Product added successfully, update the state and clear form fields
+              setSuccessMsg("Product added successfully");
+              setTitle("");
+              setDescription("");
+              setPrice("");
+              setImage(null);
+              setImagePreview(null);
+              setCategory("");
+              setSubcategory("");
+              setBrand("");
+              setImageError("");
+
+              setTimeout(() => {
+                setSuccessMsg("");
+              }, 3000);
+            } catch (error) {
+              setUploadError(error.message);
+            }
+          }
+        );
+      } catch (error) {
+        console.error("Error uploading image: ", error);
+        setUploadError(error.message);
+      }
     } else {
       console.log("Please fill in all product details.");
     }
@@ -354,11 +356,7 @@ export const AddProducts = () => {
           onChange={handleProductImg}
         />
         {imagePreview && (
-          <img
-            src={imagePreview}
-            alt="Product Image"
-            style={{ width: "200px" }}
-          />
+          <img src={imagePreview} alt="Product" style={{ width: "200px" }} />
         )}
         {imageError && (
           <>

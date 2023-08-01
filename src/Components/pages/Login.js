@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useHistory } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import TextField from "@mui/material/TextField";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -11,13 +10,13 @@ import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 import { object, string } from "yup";
 import { auth } from "../../Config/Config";
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import logsiga from "../../Images/logsiga.png";
 import logsigb from "../../Images/logsigb.png";
 import lodsigc from "../../Images/lodsigc.png";
 import logsigd from "../../Images/logsigd.png";
 import logsige from "../../Images/logsige.png";
 import logsigf from "../../Images/logsigf.png";
-
 const initialValues = {
   email: "",
   password: "",
@@ -31,9 +30,7 @@ const validation = object({
     .min(8, "Password must be at least 8 characters long"),
 });
 
-export const Login = () => {
-  const history = useHistory();
-
+export const Login = () => { 
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -45,31 +42,30 @@ export const Login = () => {
     setCurrentImageUrl(imageUrls[Math.floor(Math.random() * imageUrls.length)]);
   }, []);
 
-  const handleLogin = (values) => {
+  const handleLogin = async (values) => {
     const { email, password } = values;
 
-    auth
-      .signInWithEmailAndPassword(email, password)
-      .then(() => {
-        setEmailError(false);
-        setPasswordError(false);
-        setSuccessMsg(
-          "Login Successfull. You will get redirected to the Home page"
-        );
+    try {
+      // Use signInWithEmailAndPassword from Firebase version 10
+      await signInWithEmailAndPassword(auth, email, password);
 
-        setTimeout(() => {
-          setSuccessMsg("");
-          history.push("/");
-        }, 3000);
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        if (errorCode === "auth/wrong-password") {
-          setPasswordError(true);
-        } else {
-          setEmailError(true);
-        }
-      });
+      setEmailError(false);
+      setPasswordError(false);
+      setSuccessMsg("Login Successfull. You will get redirected to the Home page");
+
+      setTimeout(() => {
+        setSuccessMsg("");
+        // Navigate to the Home page using window.location.href
+        window.location.href = "/"; // Replace '/' with the desired URL
+      }, 3000);
+    } catch (error) {
+      const errorCode = error.code;
+      if (errorCode === "auth/wrong-password") {
+        setPasswordError(true);
+      } else {
+        setEmailError(true);
+      }
+    }
   };
 
   return (

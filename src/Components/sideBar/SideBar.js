@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useCallback } from "react";
 import Box from "@mui/joy/Box";
 import Sheet from "@mui/joy/Sheet";
 import { fs } from "../../Config/Config";
+import { getDoc,doc } from "firebase/firestore";
 
 export const SideBar = ({
   selectedCategory,
@@ -16,39 +17,55 @@ export const SideBar = ({
   useEffect(() => {
     // Fetch subcategories and brands for the selected category
     if (selectedCategory) {
-      fs.collection("Categories")
-        .doc(selectedCategory)
-        .get()
-        .then((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            setSubcategories(Object.keys(data));
-            setSelectedSubcategories([]);
+      const fetchSubcategories = async () => {
+        try {
+          const docRef = doc(fs, "Categories", selectedCategory);
+          const docSnap = await getDoc(docRef);
+  
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const subcategoryList = Object.keys(data);
+            setSubcategories(subcategoryList);
+            setSelectedSubcategories([]); // Reset selected subcategories
           } else {
             console.log("No subcategories found for this category.");
             setSubcategories([]);
-            setSelectedSubcategories([]);
+            setSelectedSubcategories([]); // Reset selected subcategories
           }
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error("Error fetching subcategories: ", error);
-        });
+        }
+      };
+  
+      fetchSubcategories();
     } else {
       setSubcategories([]);
-      setSelectedSubcategories([]);
+      setSelectedSubcategories([]); // Reset selected subcategories
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, setSelectedSubcategories]);
 
   useEffect(() => {
     if (selectedCategory && selectedSubcategories.length > 0) {
       const fetchBrands = async () => {
         let subcategoryBrands = [];
         for (const subcat of selectedSubcategories) {
-          const docRef = fs.collection("Categories").doc(selectedCategory);
-          const doc = await docRef.get();
-          const data = doc.data();
-          const subcategoryBrandsData = data[subcat] || [];
-          subcategoryBrands = [...subcategoryBrands, ...subcategoryBrandsData];
+          try {
+            const docRef = doc(fs, "Categories", selectedCategory);
+            const docSnap = await getDoc(docRef);
+  
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              const subcategoryBrandsData = data[subcat] || [];
+              subcategoryBrands = [
+                ...subcategoryBrands,
+                ...subcategoryBrandsData,
+              ];
+            } else {
+              console.log("No data found for selectedCategory and subcat.");
+            }
+          } catch (error) {
+            console.error("Error fetching brands: ", error);
+          }
         }
         setBrands(subcategoryBrands);
       };
@@ -59,7 +76,7 @@ export const SideBar = ({
   }, [selectedCategory, selectedSubcategories]);
 
   // Subcategory checkbox change handler
-  const handleSubcategoryCheckboxChange = (subcategory) => {
+  const handleSubcategoryCheckboxChange = useCallback((subcategory) => {
     if (selectedSubcategories.includes(subcategory)) {
       setSelectedSubcategories((prevSelected) =>
         prevSelected.filter((item) => item !== subcategory)
@@ -70,10 +87,9 @@ export const SideBar = ({
         subcategory,
       ]);
     }
-  };
-
+  },[selectedSubcategories, setSelectedSubcategories])
   // Brand checkbox change handler
-  const handleBrandCheckboxChange = (brand) => {
+  const handleBrandCheckboxChange = useCallback((brand) => {
     if (selectedBrands.includes(brand)) {
       setSelectedBrands((prevBrands) =>
         prevBrands.filter((item) => item !== brand)
@@ -81,7 +97,7 @@ export const SideBar = ({
     } else {
       setSelectedBrands((prevBrands) => [...prevBrands, brand]);
     }
-  };
+  },[selectedBrands, setSelectedBrands])
 
   return (
     <Box

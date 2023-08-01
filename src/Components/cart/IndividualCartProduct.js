@@ -2,8 +2,9 @@ import React from "react";
 import { Icon } from "react-icons-kit";
 import { plus } from "react-icons-kit/feather/plus";
 import { minus } from "react-icons-kit/feather/minus";
-import { auth, fs } from "../../Config/Config";
+import { fs } from "../../Config/Config";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 export const IndividualCartProduct = ({
   cartProduct,
@@ -18,14 +19,19 @@ export const IndividualCartProduct = ({
     cartProductDecrease(cartProduct);
   };
 
-  const handleCartProductDelete = () => {
-    auth.onAuthStateChanged((user) => {
+  const handleCartProductDelete = (cartProduct) => {
+    const auth = getAuth();
+    onAuthStateChanged(auth, (user) => {
       if (user) {
-        fs.collection("Cart " + user.uid)
+        const cartRef = fs.collection("Cart").doc(user.uid).collection("Items");
+        cartRef
           .doc(cartProduct.ID)
           .delete()
           .then(() => {
-            console.log("successfully deleted");
+            console.log("Successfully deleted from cart");
+          })
+          .catch((error) => {
+            console.error("Error deleting from cart: ", error);
           });
       }
     });
