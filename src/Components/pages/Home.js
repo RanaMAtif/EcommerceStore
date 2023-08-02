@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Navbar } from "../navigationBar/Navbar";
 import { fs } from "../../Config/Config";
-import { doc, setDoc, getDoc, collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { IndividualFilteredProduct } from "../IndividualFilteredProduct";
 import Carousal from "../Carousal";
@@ -88,7 +97,10 @@ export const Home = (props) => {
     let productsRef = collection(fs, "Products");
 
     if (selectedCategory !== "" && selectedCategory !== "All") {
-      productsRef = query(productsRef, where("category", "==", selectedCategory));
+      productsRef = query(
+        productsRef,
+        where("category", "==", selectedCategory)
+      );
     }
 
     if (selectedSubcategories.length > 0) {
@@ -148,7 +160,7 @@ export const Home = (props) => {
     const auth = getAuth();
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
-        const cartRef = collection(fs, "Cart " + user.uid);
+        const cartRef = collection(fs, "Cart" + user.uid);
         const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
           const qty = snapshot.docs.length;
           setTotalProducts(qty);

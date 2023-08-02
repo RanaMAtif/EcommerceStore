@@ -5,6 +5,7 @@ import { minus } from "react-icons-kit/feather/minus";
 import { fs } from "../../Config/Config";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { deleteDoc, doc } from "firebase/firestore";
 
 export const IndividualCartProduct = ({
   cartProduct,
@@ -23,10 +24,8 @@ export const IndividualCartProduct = ({
     const auth = getAuth();
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        const cartRef = fs.collection("Cart").doc(user.uid).collection("Items");
-        cartRef
-          .doc(cartProduct.ID)
-          .delete()
+        const cartRef = doc(fs, "Cart", user.uid, "Items", cartProduct.ID);
+        deleteDoc(cartRef)
           .then(() => {
             console.log("Successfully deleted from cart");
           })

@@ -5,11 +5,18 @@ import { CartProducts } from "./CartProducts";
 import StripeCheckout from "react-stripe-checkout";
 import axios from "axios";
 import { useHistory } from "react-router-dom";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, getDoc, collection, getDocs, onSnapshot, deleteDoc, updateDoc } from "firebase/firestore";
+
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Modal } from "./Modal";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+} from "firebase/firestore";
 
 toast.configure();
 
@@ -28,39 +35,32 @@ export const Cart = () => {
   };
 
   // getting current user function
-  const GetCurrentUser = () => {
+  function GetCurrentUser() {
     const [user, setUser] = useState(null);
-
     useEffect(() => {
-      const auth = getAuth();
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      auth.onAuthStateChanged((user) => {
         if (user) {
-          try {
-            const userDocRef = doc(fs, "users", user.uid);
-            const userDocSnapshot = await getDoc(userDocRef);
-
-            if (userDocSnapshot.exists()) {
-              const userData = userDocSnapshot.data();
-              setUser(userData.FirstName);
-            } else {
-              console.log("User document does not exist or is missing required field");
-              setUser(null);
-            }
-          } catch (error) {
-            console.log("Error fetching user data:", error);
-            setUser(null);
-          }
+          getDocs(collection(fs, "users"))
+            .then((querySnapshot) => {
+              const userData = querySnapshot.docs.find(
+                (doc) => doc.id === user.uid
+              );
+              if (userData) {
+                setUser(userData.data().FirstName);
+              } else {
+                setUser(null);
+              }
+            })
+            .catch((error) => {
+              console.error("Error fetching user data: ", error);
+            });
         } else {
           setUser(null);
         }
       });
-
-      // Clean up the subscription when the component unmounts
-      return () => unsubscribe();
     }, []);
-
     return user;
-  };
+  }
 
   const user = GetCurrentUser();
 
@@ -69,52 +69,50 @@ export const Cart = () => {
 
   // getting cart products from firestore collection and updating the state
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    auth.onAuthStateChanged((user) => {
       if (user) {
-        const cartRef = collection(fs, "Cart " + user.uid);
-        const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-          const newCartProduct = snapshot.docs.map((doc) => ({
-            ID: doc.id,
-            ...doc.data(),
-          }));
-          setCartProducts(newCartProduct);
-        });
+        const cartCollectionRef = collection(fs, `Cart/${user.uid}`);
+        getDocs(cartCollectionRef)
+          .then((querySnapshot) => {
+            // Access the documents in the query snapshot
+            let temp = [];
+            querySnapshot.forEach((doc) => {
+              temp.push(doc.data());
 
-        // Clean up the cart listener when the component unmounts
-        return () => {
-          unsubscribeCart();
-        };
+              console.log(doc.id, " => ", doc.data());
+            });
+            setCartProducts(temp);
+          })
+          .catch((error) => {
+            console.log("Error getting documents: ", error);
+          });
+
+        return () => unsubscribe();
+      } else {
+        console.log("user is not signed in to retrieve cart");
       }
     });
-
-    // Clean up the auth listener when the component unmounts
-    return () => {
-      unsubscribeAuth();
-    };
   }, []);
 
   // getting the qty from cartProducts in a separate array
-  const qty = cartProducts.map((cartProduct) => {
-    return cartProduct.qty;
-  });
+  const qty = cartProducts.map((cartProduct) => cartProduct.qty);
 
   // reducing the qty in a single value
-  const reducerOfQty = (accumulator, currentValue) =>
-    accumulator + currentValue;
-
-  const totalQty = qty.reduce(reducerOfQty, 0);
+  const totalQty = qty.reduce(
+    (accumulator, currentValue) => accumulator + currentValue,
+    0
+  );
 
   // getting the TotalProductPrice from cartProducts in a separate array
-  const price = cartProducts.map((cartProduct) => {
-    return cartProduct.TotalProductPrice;
-  });
+  const price = cartProducts.map(
+    (cartProduct) => cartProduct.TotalProductPrice
+  );
 
   // reducing the price in a single value
-  const reducerOfPrice = (accumulator, currentValue) =>
-    accumulator + currentValue;
-
-  const totalPrice = price.reduce(reducerOfPrice, 0);
+  const totalPrice = price.reduce(
+    (accumulator, currentValue) => accumulator + currentValue,
+    0
+  );
 
   // global variable
   let Product;
@@ -124,19 +122,25 @@ export const Cart = () => {
     Product = cartProduct;
     Product.qty = Product.qty + 1;
     Product.TotalProductPrice = Product.qty * Product.price;
-    // Updating in database
+    // updating in database
     auth.onAuthStateChanged((user) => {
       if (user) {
-        const cartDocRef = doc(fs, "Cart " + user.uid, cartProduct.ID);
-        updateDoc(cartDocRef, Product)
+        const productRef = doc(fs, "Cart " + user.uid, cartProduct.ID);
+        updateDoc(productRef, Product)
           .then(() => {
-            console.log("Increment added");
+            console.log("increment added");
+            // Manually update the cartProducts state after the Firestore update
+            setCartProducts((prevCartProducts) =>
+              prevCartProducts.map((item) =>
+                item.ID === cartProduct.ID ? { ...Product } : item
+              )
+            );
           })
           .catch((error) => {
-            console.log("Error updating cart product:", error);
+            console.error("Error updating product: ", error);
           });
       } else {
-        console.log("User is not logged in to increment");
+        console.log("user is not logged in to increment");
       }
     });
   };
@@ -147,19 +151,25 @@ export const Cart = () => {
     if (Product.qty > 1) {
       Product.qty = Product.qty - 1;
       Product.TotalProductPrice = Product.qty * Product.price;
-      // Updating in database
+      // updating in database
       auth.onAuthStateChanged((user) => {
         if (user) {
-          const cartDocRef = doc(fs, "Cart " + user.uid, cartProduct.ID);
-          updateDoc(cartDocRef, Product)
+          const productRef = doc(fs, "Cart " + user.uid, cartProduct.ID);
+          updateDoc(productRef, Product)
             .then(() => {
-              console.log("Decrement");
+              console.log("decrement");
+              // Manually update the cartProducts state after the Firestore update
+              setCartProducts((prevCartProducts) =>
+                prevCartProducts.map((item) =>
+                  item.ID === cartProduct.ID ? { ...Product } : item
+                )
+              );
             })
             .catch((error) => {
-              console.log("Error updating cart product:", error);
+              console.error("Error updating product: ", error);
             });
         } else {
-          console.log("User is not logged in to decrement");
+          console.log("user is not logged in to decrement");
         }
       });
     }
@@ -169,63 +179,52 @@ export const Cart = () => {
   const [totalProducts, setTotalProducts] = useState(0);
   // getting cart products
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    auth.onAuthStateChanged((user) => {
       if (user) {
-        const cartRef = collection(fs, "Cart " + user.uid);
-        const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-          const newCartProduct = snapshot.docs.map((doc) => ({
-            ID: doc.id,
-            ...doc.data(),
-          }));
-          setCartProducts(newCartProduct);
+        const cartCollectionRef = collection(fs, "Cart " + user.uid);
+        const unsubscribe = onSnapshot(cartCollectionRef, (querySnapshot) => {
+          const qty = querySnapshot.size;
+          setTotalProducts(qty);
         });
-
-        // Clean up the cart listener when the component unmounts
-        return () => {
-          unsubscribeCart();
-        };
+        return () => unsubscribe();
       }
     });
-    
-    // Clean up the auth listener when the component unmounts
-    return () => {
-      unsubscribeAuth();
-    };
   }, []);
 
   // charging payment
   const history = useHistory();
   const handleToken = async (token) => {
     const cart = { name: "All Products", totalPrice };
-    const response = await axios.post("http://localhost:8080/checkout", {
-      token,
-      cart,
-    });
-    console.log(response);
-    let { status } = response.data;
-    console.log(status);
-    if (status === "success") {
-      history.push("/");
-      toast.success("Your order has been placed successfully", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: false,
-        progress: undefined,
+    try {
+      const response = await axios.post("http://localhost:8080/checkout", {
+        token,
+        cart,
       });
+      console.log(response);
+      const { status } = response.data;
+      console.log(status);
+      if (status === "success") {
+        history.push("/");
+        toast.success("Your order has been placed successfully", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: false,
+          progress: undefined,
+        });
 
-      const uid = auth.currentUser.uid;
-      const carts = await fs.collection("Cart " + uid).get();
-      for (var snap of carts.docs) {
-        fs.collection("Cart " + uid)
-          .doc(snap.id)
-          .delete();
+        const uid = auth.currentUser.uid;
+        const cartsSnapshot = await getDocs(collection(fs, "Cart " + uid));
+        cartsSnapshot.forEach((doc) => {
+          deleteDoc(doc.ref);
+        });
+      } else {
+        alert("Something went wrong in checkout");
       }
-    } else {
-      alert("Something went wrong in checkout");
+    } catch (error) {
+      console.error("Error processing payment: ", error);
     }
   };
 
@@ -236,7 +235,7 @@ export const Cart = () => {
       {cartProducts.length > 0 && (
         <div className="container-fluid">
           <h1 className="text-center">Cart</h1>
-          <div style={{ display: "flex", justifyContent: "center" }}>
+          <div className="products-box cart">
             <CartProducts
               cartProducts={cartProducts}
               cartProductIncrease={cartProductIncrease}
@@ -254,7 +253,7 @@ export const Cart = () => {
             </div>
             <br></br>
             <StripeCheckout
-              stripeKey="YOUR_STRIPE_PUBLISHABLE_KEY"
+              stripeKey="pk_test_51NRC5HB19CqeJrhWp5wt638E25qSNjaohB7TJVwURTWvoiz9cYBSOR37e5CsncI7TOVCeyIuJWS3JqtuXS0SbsxH00iAtYudOQ"
               token={handleToken}
               billingAddress
               shippingAddress
