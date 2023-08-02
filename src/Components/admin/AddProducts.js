@@ -47,9 +47,9 @@ export const AddProducts = () => {
 
   // Fetch subcategories for the selected category from Firestore
   useEffect(() => {
-    if (category) {
-      const fetchSubcategories = async () => {
-        try {
+    const fetchSubcategories = async () => {
+      try {
+        if (category) {
           const docRef = doc(fs, "Categories", category);
           const docSnap = await getDoc(docRef);
 
@@ -60,22 +60,22 @@ export const AddProducts = () => {
             console.log("No subcategories found for this category.");
             setSubcategories([]);
           }
-        } catch (error) {
-          console.error("Error fetching subcategories: ", error);
+        } else {
+          setSubcategories([]);
         }
-      };
+      } catch (error) {
+        console.error("Error fetching subcategories: ", error);
+      }
+    };
 
-      fetchSubcategories();
-    } else {
-      setSubcategories([]);
-    }
+    fetchSubcategories();
   }, [category]);
 
   // Fetch brands for the selected subcategory from Firestore
   useEffect(() => {
-    if (category && subcategory) {
-      const fetchBrands = async () => {
-        try {
+    const fetchBrands = async () => {
+      try {
+        if (category && subcategory) {
           const docRef = doc(fs, "Categories", category);
           const docSnap = await getDoc(docRef);
 
@@ -86,71 +86,16 @@ export const AddProducts = () => {
             console.log("No brands found for this subcategory.");
             setBrands([]);
           }
-        } catch (error) {
-          console.error("Error fetching brands: ", error);
+        } else {
+          setBrands([]);
         }
-      };
+      } catch (error) {
+        console.error("Error fetching brands: ", error);
+      }
+    };
 
-      fetchBrands();
-    } else {
-      setBrands([]);
-    }
+    fetchBrands();
   }, [category, subcategory]);
-
-  const handleAddData = (e) => {
-    e.preventDefault();
-
-    // Add category, subcategory, and brand data to Firestore
-    if (category && (subcategory || brand)) {
-      let subcategoryToAdd = subcategory;
-      if (!subcategories.includes(subcategory)) {
-        // If the subcategory is not in the subcategories list, it's a new value
-        // Add it to the subcategories list
-        subcategoryToAdd = subcategory;
-        setSubcategories([...subcategories, subcategory]);
-      }
-
-      let brandToAdd = brand;
-      if (!brands.includes(brand)) {
-        // If the brand is not in the brands list, it's a new value
-        // Add it to the brands list
-        brandToAdd = brand;
-        setBrands([...brands, brand]);
-      }
-
-      // Check if the selected category is already in the categories list
-      if (!categories.includes(category)) {
-        // If the category is not in the categories list, it's a new value
-        // Add it to the categories list
-        setCategories([...categories, category]);
-      }
-
-      // Update the subcategory and brand in the Categories collection
-      const docRef = doc(fs, "Categories", category);
-      const dataToUpdate = {};
-
-      if (!subcategories.includes(subcategory)) {
-        dataToUpdate[subcategoryToAdd] = [brandToAdd];
-      } else {
-        dataToUpdate[subcategoryToAdd] = arrayUnion(brandToAdd);
-      }
-
-      updateDoc(docRef, dataToUpdate)
-        .then(() => {
-          console.log("Data added to Firestore successfully!");
-        })
-        .catch((error) => {
-          console.error("Error adding data to Firestore: ", error);
-        });
-
-      // Clear the form fields after successful update
-      setCategory("");
-      setSubcategory("");
-      setBrand("");
-    } else {
-      console.log("Please enter values for all fields.");
-    }
-  };
 
   const handleProductImg = (e) => {
     let selectedFile = e.target.files[0];
@@ -162,9 +107,7 @@ export const AddProducts = () => {
         setImagePreview(URL.createObjectURL(selectedFile));
       } else {
         setImage(null);
-        setImageError(
-          "Please select a valid image file type (png, jpg, or jpeg)"
-        );
+        setImageError("Please select a valid image file type (png, jpg, or jpeg)");
         // Clear the image preview when there is an error
         setImagePreview(null);
       }
@@ -178,15 +121,7 @@ export const AddProducts = () => {
   const handleAddProduct = async (e) => {
     e.preventDefault();
 
-    if (
-      category &&
-      subcategory &&
-      brand &&
-      title &&
-      description &&
-      price &&
-      image
-    ) {
+    if (category && subcategory && brand && title && description && price && image) {
       try {
         // Upload the image to Firebase Storage
         const storageRef = ref(storage, `product-images/${image.name}`);
@@ -195,8 +130,7 @@ export const AddProducts = () => {
         uploadTask.on(
           "state_changed",
           (snapshot) => {
-            const progress =
-              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             console.log(progress);
           },
           (error) => setUploadError(error.message),
@@ -220,6 +154,18 @@ export const AddProducts = () => {
               const productsRef = collection(fs, "Products"); // Change "Products" to your desired collection name
               await setDoc(doc(productsRef), productData);
 
+              // Update the subcategory and brand in the Categories collection
+              const docRef = doc(fs, "Categories", category);
+              const dataToUpdate = {};
+
+              if (!subcategories.includes(subcategory)) {
+                dataToUpdate[subcategory] = [brand];
+              } else {
+                dataToUpdate[subcategory] = arrayUnion(brand);
+              }
+
+              await updateDoc(docRef, dataToUpdate);
+
               // Product added successfully, update the state and clear form fields
               setSuccessMsg("Product added successfully");
               setTitle("");
@@ -228,7 +174,9 @@ export const AddProducts = () => {
               setImage(null);
               setImagePreview(null);
               setImageError("");
-
+              setCategory("");
+              setSubcategory("");
+              setBrand("");
               setTimeout(() => {
                 setSuccessMsg("");
               }, 3000);
@@ -256,11 +204,7 @@ export const AddProducts = () => {
           <br />
         </>
       )}
-      <form
-        autoComplete="off"
-        className="form-group"
-        onSubmit={handleAddProduct}
-      >
+      <form autoComplete="off" className="form-group" onSubmit={handleAddProduct}>
         <label>Product Title</label>
         <input
           type="text"
