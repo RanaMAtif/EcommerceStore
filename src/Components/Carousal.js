@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { getStorage, ref, listAll, getDownloadURL } from "@firebase/storage";
-import { firebaseApp } from "../Config/Config"; // Replace with the correct path to Config.js
+import { ref, listAll, getDownloadURL } from "firebase/storage";
+import { storage } from "../Config/Config"; // Replace with the correct path to your Firebase config
+
 import { autoPlay } from "react-swipeable-views-utils";
 import SwipeableViews from "react-swipeable-views";
 
@@ -13,7 +14,7 @@ function Carousal() {
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const storageRef = ref(getStorage(firebaseApp), "carousel-images");
+        const storageRef = ref(storage, "carousel-images");
         const listResult = await listAll(storageRef);
 
         const imageUrls = await Promise.all(
@@ -35,6 +36,7 @@ function Carousal() {
   const handleStepChange = (step) => {
     setActiveStep(step);
   };
+
   return (
     <section
       style={{

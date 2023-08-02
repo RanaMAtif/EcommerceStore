@@ -12,7 +12,7 @@ export const DeleteProducts = () => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    // Fetch products from Firestore whenever the searchTerm changes
+    // Fetch products from Firestore whenever the component mounts or searchTerm changes
     fetchProducts();
   }, [searchTerm]);
 
@@ -87,7 +87,7 @@ export const DeleteProducts = () => {
             filteredProducts.map((product) => (
               <div key={product.id} className="product">
                 <div className="product-img">
-                  <img src={product.url} alt="product-img" />
+                  <img src={product.imageUrl} alt="product-img" />
                 </div>
                 <div className="product-text title">{product.title}</div>
                 <div className="product-text description">
@@ -98,7 +98,7 @@ export const DeleteProducts = () => {
                 <Tooltip title="Delete Image">
                   <IconButton
                     variant="contained"
-                    onClick={() => handleDelete(product.id, product.url)}
+                    onClick={() => handleDelete(product.id, product.imageUrl)}
                     aria-label="delete"
                   >
                     <DeleteIcon color="error" />
