@@ -11,7 +11,7 @@ export const IndividualFilteredProduct = ({
   return (
     <div className="product">
       <div className="product-img">
-        <img src={individualFilteredProduct.url} alt="product-img" />
+        <img src={individualFilteredProduct.imageUrl} alt="product-img" />
       </div>
       <div className="product-text title">
         {individualFilteredProduct.title}

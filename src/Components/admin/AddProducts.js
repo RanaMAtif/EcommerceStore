@@ -96,6 +96,7 @@ export const AddProducts = () => {
 
     fetchBrands();
   }, [category, subcategory]);
+  
 
   const handleProductImg = (e) => {
     let selectedFile = e.target.files[0];

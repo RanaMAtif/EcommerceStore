@@ -1,14 +1,14 @@
-import React, { useState, useEffect,useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Navbar } from "../navigationBar/Navbar";
-import { Products } from "../product/Products";
 import { fs } from "../../Config/Config";
-import { doc, setDoc,getDoc,collection, getDocs,onSnapshot,query, where } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { IndividualFilteredProduct } from "../IndividualFilteredProduct";
 import Carousal from "../Carousal";
 import { Button } from "@mui/material";
 import Footer from "../footer/Footer";
 import { SideBar } from "../sideBar/SideBar";
+
 const footerStyle = {
   position: "fixed",
   left: 0,
@@ -22,6 +22,8 @@ export const Home = (props) => {
   const [selectedSubcategories, setSelectedSubcategories] = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [noProductsFound, setNoProductsFound] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   // Getting current user uid
   const GetUserUid = () => {
@@ -43,7 +45,7 @@ export const Home = (props) => {
   // Getting current user
   const GetCurrentUser = () => {
     const [user, setUser] = useState(null);
-  
+
     useEffect(() => {
       const auth = getAuth();
       const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
@@ -51,7 +53,7 @@ export const Home = (props) => {
           try {
             const userDocRef = doc(fs, "users", authUser.uid);
             const userDocSnapshot = await getDoc(userDocRef);
-  
+
             if (userDocSnapshot.exists()) {
               const userData = userDocSnapshot.data();
               setUser({
@@ -72,84 +74,74 @@ export const Home = (props) => {
           setUser(null);
         }
       });
-  
+
       // Clean up the subscription when the component unmounts
       return () => unsubscribe();
     }, []);
-  
+
     return user;
   };
   const user = GetCurrentUser();
-  // State of products
-  const [products, setProducts] = useState([]);
 
   // Getting products function
   const getProducts = useCallback(async () => {
     let productsRef = collection(fs, "Products");
-  
+
     if (selectedCategory !== "" && selectedCategory !== "All") {
       productsRef = query(productsRef, where("category", "==", selectedCategory));
     }
-  
+
     if (selectedSubcategories.length > 0) {
       productsRef = query(
         productsRef,
         where("subcategory", "in", selectedSubcategories)
       );
     }
-  
-    // We'll handle the brand filtering separately
-    // Filter products based on selected brands
+
+    // Filtering products based on selected brands
     if (selectedBrands.length > 0) {
       const productsSnapshot = await getDocs(productsRef);
       const filteredProducts = productsSnapshot.docs.filter((doc) => {
         const productData = doc.data();
         return selectedBrands.includes(productData.brand);
       });
-  
+
       if (filteredProducts.length === 0) {
         setNoProductsFound(true);
-        setProducts([]); // No products to show, so set an empty array
+        setProducts([]);
         return;
       }
-  
-      // Now we have the filtered products based on brands
+
       const productsArray = filteredProducts.map((doc) => {
         const data = doc.data();
         data.ID = doc.id;
         return data;
       });
-  
+
       setNoProductsFound(false);
       setProducts(productsArray);
     } else {
-      // No brands selected, so fetch all products based on other filters
       const productsSnapshot = await getDocs(productsRef);
-  
+
       if (productsSnapshot.empty) {
-        // No products found for the selected filters
         setNoProductsFound(true);
         setProducts([]);
       } else {
-        // Products found for the selected filters
         const productsArray = productsSnapshot.docs.map((doc) => {
           const data = doc.data();
           data.ID = doc.id;
           return data;
         });
-  
+
         setNoProductsFound(false);
         setProducts(productsArray);
       }
     }
-  },[selectedCategory, selectedSubcategories, selectedBrands])
+  }, [selectedCategory, selectedSubcategories, selectedBrands]);
 
   useEffect(() => {
     getProducts();
-  }, [selectedCategory, selectedSubcategories, selectedBrands, getProducts]);
-
-  // State of totalProducts
-  const [totalProducts, setTotalProducts] = useState(0);
+  }, [getProducts]);
 
   // Getting cart products
   useEffect(() => {
@@ -175,8 +167,7 @@ export const Home = (props) => {
     };
   }, []);
 
-
-  //clean up function
+  // Cleanup function
 
   useEffect(() => {
     let isMounted = true;
@@ -221,7 +212,7 @@ export const Home = (props) => {
         qty: 1,
         TotalProductPrice: product.price,
       };
-  
+
       try {
         const cartRef = doc(fs, `Cart/${uid}`);
         setDoc(cartRef, productWithQtyAndTotalPrice)
@@ -267,7 +258,7 @@ export const Home = (props) => {
       <br />
       <div>{selectedCategory === "" && <Carousal />}</div>
       <div className="container-fluid filter-products-main-box">
-        {noProductsFound ? ( // Check if no products were found for the selected category
+        {noProductsFound ? (
           <div
             style={{
               height: "50vh",
@@ -281,12 +272,16 @@ export const Home = (props) => {
               No products under this category.......
             </h1>
           </div>
-        ) : products.length > 0 ? (
+        ) : (
           <div className="my-products">
-            <h1 className="text-center">{selectedCategory}</h1>
-            <Button onClick={() => handleCategoryChange("All")}>
-              Return to All Products
-            </Button>
+            <h1 className="text-center">
+              {selectedCategory !== "" ? selectedCategory : "All Products"}
+            </h1>
+            {selectedCategory !== "" && (
+              <Button onClick={() => handleCategoryChange("All")}>
+                Return to All Products
+              </Button>
+            )}
             <div className="products-box">
               {products.map((individualFilteredProduct) => (
                 <IndividualFilteredProduct
@@ -295,13 +290,6 @@ export const Home = (props) => {
                   addToCart={addToCart}
                 />
               ))}
-            </div>
-          </div>
-        ) : (
-          <div className="my-products">
-            <h1 className="text-center">All Products</h1>
-            <div className="products-box">
-              <Products products={products} addToCart={addToCart} />
             </div>
           </div>
         )}
