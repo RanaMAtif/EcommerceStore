@@ -5,12 +5,13 @@ import { minus } from "react-icons-kit/feather/minus";
 import { fs } from "../../Config/Config";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { deleteDoc, doc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export const IndividualCartProduct = ({
   cartProduct,
   cartProductIncrease,
   cartProductDecrease,
+  onProductDeleteSuccess, // Add the callback prop here
 }) => {
   const handleCartProductIncrease = () => {
     cartProductIncrease(cartProduct);
@@ -20,26 +21,37 @@ export const IndividualCartProduct = ({
     cartProductDecrease(cartProduct);
   };
 
-  const handleCartProductDelete = (cartProduct) => {
+  const handleCartProductDelete = async () => {
     const auth = getAuth();
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const cartRef = doc(fs, "Cart", user.uid, "Items", cartProduct.ID);
-        deleteDoc(cartRef)
-          .then(() => {
+        try {
+          const cartRef = doc(fs, `Cart/${user.uid}`);
+          const cartDoc = await getDoc(cartRef);
+
+          if (cartDoc.exists()) {
+            // Remove the cartProduct from the Items array
+            const newItems = cartDoc
+              .data()
+              .Items.filter((item) => item.ID !== cartProduct.ID);
+
+            // Update the cart document with the new Items array
+            await setDoc(cartRef, {
+              Items: newItems.length > 0 ? newItems : {}, // Update to an empty object if no items left
+            });
+
             console.log("Successfully deleted from cart");
-          })
-          .catch((error) => {
-            console.error("Error deleting from cart: ", error);
-          });
+          }
+        } catch (error) {
+          console.error("Error deleting from cart: ", error);
+        }
       }
     });
-  };
-
+  };  
   return (
     <div className="product">
       <div className="product-img">
-        <img src={cartProduct.url} alt="product-img" />
+        <img src={cartProduct.imageUrl} alt="product-img" />
       </div>
       <div className="product-text title">{cartProduct.title}</div>
       <div className="product-text description">{cartProduct.description}</div>

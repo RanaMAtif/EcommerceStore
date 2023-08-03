@@ -5,7 +5,6 @@ import { CartProducts } from "./CartProducts";
 import StripeCheckout from "react-stripe-checkout";
 import axios from "axios";
 import { useHistory } from "react-router-dom";
-
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Modal } from "./Modal";
@@ -16,6 +15,8 @@ import {
   updateDoc,
   deleteDoc,
   onSnapshot,
+  query,
+  where,
 } from "firebase/firestore";
 
 toast.configure();
@@ -71,21 +72,22 @@ export const Cart = () => {
   useEffect(() => {
     auth.onAuthStateChanged((user) => {
       if (user) {
-        const cartCollectionRef = collection(fs, `Cart/${user.uid}`);
-        getDocs(cartCollectionRef)
-          .then((querySnapshot) => {
-            // Access the documents in the query snapshot
-            let temp = [];
-            querySnapshot.forEach((doc) => {
-              temp.push(doc.data());
+        const cartCollectionGroupRef = collection(fs, "Cart");
+        const q = query(cartCollectionGroupRef, where("__name__", "==", user.uid));
 
-              console.log(doc.id, " => ", doc.data());
-            });
-            setCartProducts(temp);
-          })
-          .catch((error) => {
-            console.log("Error getting documents: ", error);
-          });
+        const unsubscribe = onSnapshot(
+          q,
+          (querySnapshot) => { 
+            const newCartProduct = querySnapshot.docs.map((doc) => ({
+              ID: doc.id,
+              ...doc.data(),
+            }));
+            setCartProducts(newCartProduct);
+          },
+          (error) => {
+            console.error("Error fetching cart products:", error);
+          }
+        );
 
         return () => unsubscribe();
       } else {
@@ -227,12 +229,17 @@ export const Cart = () => {
       console.error("Error processing payment: ", error);
     }
   };
-
+  const handleProductDelete = (productId) => {
+    // Filter out the product with the given ID from the cartProducts state
+    setCartProducts((prevCartProducts) =>
+      prevCartProducts.filter((product) => product.ID !== productId)
+    );
+  };
   return (
     <>
       <Navbar user={user} totalProducts={totalProducts} />
       <br></br>
-      {cartProducts.length > 0 && (
+      {cartProducts.length > 0 ? (
         <div className="container-fluid">
           <h1 className="text-center">Cart</h1>
           <div className="products-box cart">
@@ -240,6 +247,7 @@ export const Cart = () => {
               cartProducts={cartProducts}
               cartProductIncrease={cartProductIncrease}
               cartProductDecrease={cartProductDecrease}
+              removeProduct={handleProductDelete}
             />
           </div>
           <div className="summary-box">
@@ -271,9 +279,11 @@ export const Cart = () => {
             </button>
           </div>
         </div>
-      )}
-      {cartProducts.length < 1 && (
-        <div className="container-fluid">No products to show</div>
+      ) : (
+        <div className="container-fluid text-center">
+          <h1>Cart</h1>
+          <h3>No products in the cart.</h3>
+        </div>
       )}
 
       {showModal === true && (
