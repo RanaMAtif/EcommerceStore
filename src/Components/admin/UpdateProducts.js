@@ -77,27 +77,24 @@ export const UpdateProducts = () => {
   const handleSearchTermChange = (e) => {
     setSearchTerm(e.target.value);
   };
-
-  // Function to handle the edit icon click and open the modal
   const handleEditClick = (product) => {
     setSelectedProduct(product);
     setOpenModal(true);
     setUpdatedTitle(product.title);
     setUpdatedDescription(product.description);
     setUpdatedPrice(product.price.toString());
-    // Set the previous image URL in state based on the selected product
-    setPreviousImageUrl(product.imageUrl); // Change "Imageurl" to "imageUrl"
-    setImagePreview(product.imageUrl); // Set the image preview for the selected product
+    setPreviousImageUrl(product.imageUrl); 
+    setImagePreview(product.imageUrl); 
   };
 
   // Function to handle the modal close
   const handleCloseModal = () => {
     setOpenModal(false);
-    // Reset the form fields and image preview when the modal is closed
+
     setUpdatedTitle("");
     setUpdatedDescription("");
     setUpdatedPrice("");
-    setSelectedImage(null); // Changed "updatedImage" to "selectedImage"
+    setSelectedImage(null); 
     setImagePreview(null);
   };
 

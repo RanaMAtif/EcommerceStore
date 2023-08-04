@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback,useRef } from "react";
 import { Navbar } from "../navigationBar/Navbar";
 import { fs } from "../../Config/Config";
 import {
@@ -33,7 +33,7 @@ export const Home = (props) => {
   const [noProductsFound, setNoProductsFound] = useState(false);
   const [products, setProducts] = useState([]);
   const [totalProductsInCart, setTotalProductsInCart] = useState(0);
-
+  const isMounted = useRef(true);
   // Getting current user uid
   const GetUserUid = () => {
     const [uid, setUid] = useState(null);
@@ -163,16 +163,17 @@ export const Home = (props) => {
             (acc, doc) => acc + doc.data().qty,
             0
           );
+          if (!isMounted.current) return; // Skip state update if unmounted
           setTotalProductsInCart(totalProducts);
         });
-
+  
         // Clean up the cart listener when the component unmounts
         return () => {
-          unsubscribeCart();
+          unsubscribeCart(); // Unsubscribe from the snapshot listener
         };
       }
     });
-
+  
     // Clean up the auth listener when the component unmounts
     return () => {
       unsubscribeAuth();

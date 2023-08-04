@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import { fs, auth } from "../../Config/Config";
 import {
   collection,
@@ -7,6 +7,7 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { Navbar } from "../navigationBar/Navbar";
@@ -23,7 +24,7 @@ toast.configure();
 export const Cart = () => {
   // show modal state
   const [showModal, setShowModal] = useState(false);
-
+  const isMounted = useRef(true);
   // trigger modal
   const triggerModal = () => {
     setShowModal(true);
@@ -66,7 +67,7 @@ export const Cart = () => {
 
   // state of cart products
   const [cartProducts, setCartProducts] = useState([]);
-// Calculate the total quantity of products in the cart
+  // Calculate the total quantity of products in the cart
   const totalProductsInCart = cartProducts.reduce(
     (accumulator, cartProduct) => accumulator + cartProduct.qty,
     0
@@ -74,35 +75,26 @@ export const Cart = () => {
 
   // getting cart products from firestore collection and updating the state
   useEffect(() => {
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        console.log("Fetching cart products for user:", user.uid);
-  
-        const cartCollectionRef = collection(fs, "Carts", user.uid,"products");
-  
-        const unsubscribe = onSnapshot(
-          cartCollectionRef,
-          (querySnapshot) => {
-            console.log("Query snapshot:", querySnapshot.docs);
-  
-            const newCartProduct = querySnapshot.docs.map((doc) => ({
-              ID: doc.id,
-              ...doc.data(),
-            }));
-  
-            console.log("Fetched cart products:", newCartProduct);
-            setCartProducts(newCartProduct);
-          },
-          (error) => {
-            console.error("Error fetching cart products:", error);
-          }
-        );
-  
-        return () => unsubscribe();
-      } else {
-        console.log("User is not signed in to retrieve cart");
+    const cartCollectionRef = collection(fs, "Carts", auth.currentUser.uid, "products");
+    const unsubscribe = onSnapshot(
+      cartCollectionRef,
+      (querySnapshot) => {
+        const newCartProduct = querySnapshot.docs.map((doc) => ({
+          ID: doc.id,
+          ...doc.data(),
+        }));
+        if (!isMounted.current) return; // Skip state update if unmounted
+        setCartProducts(newCartProduct);
+      },
+      (error) => {
+        console.error("Error fetching cart products:", error);
       }
-    });
+    );
+  
+    return () => {
+      unsubscribe(); // Unsubscribe from the snapshot listener
+      isMounted.current = false; // Set the ref to false when unmounting
+    };
   }, []);
 
   // Calculate the total quantity and total price of products in the cart
@@ -118,43 +110,54 @@ export const Cart = () => {
 
   // cart product increase function
   const cartProductIncrease = (cartProduct) => {
-    const updatedCartProducts = cartProducts.map((product) =>
-      product.ID === cartProduct.ID
-        ? {
-            ...product,
-            qty: product.qty + 1,
-            TotalProductPrice: product.price * (product.qty + 1),
-          }
-        : product
-    );
+    // console.log(cartProduct);
+    let Product = cartProduct;
+    Product.qty = Product.qty + 1;
+    Product.TotalProductPrice = Product.qty * Product.price;
 
-    // Update the cart data in Firestore
-    if (auth.currentUser) {
-      const cartRef = doc(
-        fs,
-        `Carts/${auth.currentUser.uid}/products/${cartProduct.ID}`
-      );
-      updateDoc(cartRef, { products: updatedCartProducts });
+    // initializing Firebase
+    const auth = getAuth();
+
+    // updating in database
+    const user = auth.currentUser;
+    if (user) {
+      updateDoc(doc(fs, "Carts", user.uid, "products", cartProduct.ID), Product)
+        .then(() => {
+          console.log("increment added");
+        })
+        .catch((error) => {
+          console.error("Error updating document: ", error);
+        });
+    } else {
+      console.log("user is not logged in to increment");
     }
   };
-
   // cart product decrease functionality
   const cartProductDecrease = (cartProduct) => {
-    if (cartProduct.qty > 1) {
-      const updatedCartProducts = cartProducts.map((product) =>
-        product.ID === cartProduct.ID
-          ? {
-              ...product,
-              qty: product.qty - 1,
-              TotalProductPrice: product.price * (product.qty - 1),
-            }
-          : product
-      );
+    // console.log(cartProduct);
+    let Product = cartProduct;
+    if (Product.qty > 1) {
+      Product.qty = Product.qty - 1;
+      Product.TotalProductPrice = Product.qty * Product.price;
 
-      // Update the cart data in Firestore
-      if (auth.currentUser) {
-        const cartRef = doc(fs, "Cart", auth.currentUser.uid);
-        updateDoc(cartRef, { products: updatedCartProducts });
+      // initializing Firebase
+      const auth = getAuth();
+
+      // updating in database
+      const user = auth.currentUser;
+      if (user) {
+        updateDoc(
+          doc(fs, "Carts", user.uid, "products", cartProduct.ID),
+          Product
+        )
+          .then(() => {
+            console.log("decrement added");
+          })
+          .catch((error) => {
+            console.error("Error updating document: ", error);
+          });
+      } else {
+        console.log("user is not loggedin");
       }
     }
   };
@@ -183,11 +186,23 @@ export const Cart = () => {
           progress: undefined,
         });
 
-        const uid = auth.currentUser.uid;
-        const cartsSnapshot = await getDocs(collection(fs, "Cart", uid));
-        cartsSnapshot.forEach((doc) => {
-          deleteDoc(doc.ref);
-        });
+        // Delete the documents within the user's cart collection from Firestore
+        if (auth.currentUser) {
+          const cartCollectionRef = collection(
+            fs,
+            "Carts",
+            auth.currentUser.uid,
+            "products"
+          );
+          const cartSnapshot = await getDocs(cartCollectionRef);
+
+          // Delete each document within the collection
+          const deletePromises = cartSnapshot.docs.map(async (doc) => {
+            await deleteDoc(doc.ref);
+          });
+
+          await Promise.all(deletePromises);
+        }
       } else {
         alert("Something went wrong in checkout");
       }
@@ -205,19 +220,13 @@ export const Cart = () => {
         const cartDoc = await getDoc(cartRef);
 
         if (cartDoc.exists()) {
-          const updatedProducts = cartDoc
-            .data()
-            .products.filter((product) => product.ID !== productId);
-
-          await updateDoc(cartRef, { products: updatedProducts });
-          onProductDeleteSuccess(productId);
+          await deleteDoc(cartDoc);
         }
       }
     } catch (error) {
       console.error("Error deleting from cart: ", error);
     }
   };
-
 
   return (
     <>
@@ -227,12 +236,12 @@ export const Cart = () => {
         <div className="container-fluid">
           <h1 className="text-center">Cart</h1>
           <div className="products-box cart">
-          <CartProducts
-          cartProducts={cartProducts}
-          cartProductIncrease={cartProductIncrease}
-          cartProductDecrease={cartProductDecrease}
-          onProductDeleteSuccess={handleProductDelete}
-        />
+            <CartProducts
+              cartProducts={cartProducts}
+              cartProductIncrease={cartProductIncrease}
+              cartProductDecrease={cartProductDecrease}
+              onProductDeleteSuccess={handleProductDelete}
+            />
           </div>
           <div className="summary-box">
             <h5>Cart Summary</h5>
