@@ -32,7 +32,7 @@ export const Home = (props) => {
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [noProductsFound, setNoProductsFound] = useState(false);
   const [products, setProducts] = useState([]);
-  const [totalProducts, setTotalProducts] = useState(0);
+  const [totalProductsInCart, setTotalProductsInCart] = useState(0);
 
   // Getting current user uid
   const GetUserUid = () => {
@@ -97,10 +97,7 @@ export const Home = (props) => {
     let productsRef = collection(fs, "Products");
 
     if (selectedCategory !== "" && selectedCategory !== "All") {
-      productsRef = query(
-        productsRef,
-        where("category", "==", selectedCategory)
-      );
+      productsRef = query(productsRef, where("category", "==", selectedCategory));
     }
 
     if (selectedSubcategories.length > 0) {
@@ -160,10 +157,13 @@ export const Home = (props) => {
     const auth = getAuth();
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
-        const cartRef = collection(fs, "Cart" + user.uid);
+        const cartRef = collection(fs, "Carts", user.uid, "products");
         const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-          const qty = snapshot.docs.length;
-          setTotalProducts(qty);
+          const totalProducts = snapshot.docs.reduce(
+            (acc, doc) => acc + doc.data().qty,
+            0
+          );
+          setTotalProductsInCart(totalProducts);
         });
 
         // Clean up the cart listener when the component unmounts
@@ -217,25 +217,39 @@ export const Home = (props) => {
   }, []);
 
   // Add to cart
-  const addToCart = (product) => {
+  const addToCart = async (product) => {
     if (uid !== null) {
-      const productWithQtyAndTotalPrice = {
-        ...product,
-        qty: 1,
-        TotalProductPrice: product.price,
-      };
+      const cartRef = collection(fs, "Carts", uid, "products");
 
       try {
-        const cartRef = doc(fs, `Cart/${uid}`);
-        setDoc(cartRef, productWithQtyAndTotalPrice)
-          .then(() => {
-            console.log("Product successfully added to cart");
-          })
-          .catch((error) => {
-            console.error("Error adding product to cart: ", error);
+        // Check if the product already exists in the user's cart
+        const productRef = doc(cartRef, product.ID);
+        const productSnapshot = await getDoc(productRef);
+
+        if (productSnapshot.exists()) {
+          // If the product already exists, update its quantity and total product price
+          const existingProductData = productSnapshot.data();
+          const updatedQty = existingProductData.qty + 1;
+          const updatedTotalProductPrice = updatedQty * product.price;
+
+          await productRef.update({
+            qty: updatedQty,
+            TotalProductPrice: updatedTotalProductPrice,
           });
+        } else {
+          // If the product does not exist, add it to the cart with quantity and total product price
+          const productWithQtyAndTotalPrice = {
+            ...product,
+            qty: 1,
+            TotalProductPrice: product.price,
+          };
+
+          await setDoc(productRef, productWithQtyAndTotalPrice);
+        }
+
+        console.log("Product successfully added to cart");
       } catch (error) {
-        console.error("Error creating cart reference: ", error);
+        console.error("Error adding product to cart: ", error);
       }
     } else {
       props.history.push("/login");
@@ -254,7 +268,7 @@ export const Home = (props) => {
     <>
       <Navbar
         user={user}
-        totalProducts={totalProducts}
+        totalProductsInCart={totalProductsInCart}
         handleCategoryChange={handleCategoryChange}
       />
       <br />

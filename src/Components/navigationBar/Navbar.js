@@ -12,7 +12,7 @@ const adminEmails = {
   "atifranaofficial@gmail.com": true,
 };
 
-export const Navbar = ({ user, totalProducts, handleCategoryChange }) => {
+export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
   const history = useHistory();
   const location = useLocation(); // Get the current route location
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -50,20 +50,19 @@ export const Navbar = ({ user, totalProducts, handleCategoryChange }) => {
             <img src={logo} alt="logo" />
           </Link>
         </div>
-        </div>
-        <div
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center", // Center the FilterNav component
-          }}
-        >
-          {/* Conditionally render the FilterNav component */}
-          {location.pathname !== "/cart" && (
-            <FilterNav handleCategoryChange={handleCategoryChange} />
-          )}
-        </div>
-      
+      </div>
+      <div
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center", // Center the FilterNav component
+        }}
+      >
+        {/* Conditionally render the FilterNav component */}
+        {location.pathname !== "/cart" && (
+          <FilterNav handleCategoryChange={handleCategoryChange} />
+        )}
+      </div>
 
       <div className="rightside" sx={{ display: "flex", alignItems: "center" }}>
         {!user ? (
@@ -115,8 +114,8 @@ export const Navbar = ({ user, totalProducts, handleCategoryChange }) => {
             >
               <Link className="navlink" to="/cart">
                 <Icon icon={shoppingCart} size={20} />
-              </Link>
-              <span className="cart-indicator">{totalProducts}</span>
+              </Link> 
+              <span className="cart-indicator">{totalProductsInCart}</span>
             </div>
             <Button
               onClick={handleLogout}

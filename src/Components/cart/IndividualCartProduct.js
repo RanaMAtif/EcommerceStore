@@ -2,16 +2,18 @@ import React from "react";
 import { Icon } from "react-icons-kit";
 import { plus } from "react-icons-kit/feather/plus";
 import { minus } from "react-icons-kit/feather/minus";
-import { fs } from "../../Config/Config";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { doc, deleteDoc } from "firebase/firestore";
+import { fs } from "../../Config/Config"; 
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export const IndividualCartProduct = ({
   cartProduct,
   cartProductIncrease,
   cartProductDecrease,
-  onProductDeleteSuccess, // Add the callback prop here
+  onProductDeleteSuccess,
 }) => {
   const handleCartProductIncrease = () => {
     cartProductIncrease(cartProduct);
@@ -21,33 +23,24 @@ export const IndividualCartProduct = ({
     cartProductDecrease(cartProduct);
   };
 
-  const handleCartProductDelete = async () => {
+  const handleCartProductDelete = async (productId) => {
     const auth = getAuth();
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const cartRef = doc(fs, `Cart/${user.uid}`);
-          const cartDoc = await getDoc(cartRef);
+    try {
+      if (auth.currentUser) {
+        const cartProductRef = doc(
+          fs,
+          `Carts/${auth.currentUser.uid}/products/${productId}`
+        );
 
-          if (cartDoc.exists()) {
-            // Remove the cartProduct from the Items array
-            const newItems = cartDoc
-              .data()
-              .Items.filter((item) => item.ID !== cartProduct.ID);
-
-            // Update the cart document with the new Items array
-            await setDoc(cartRef, {
-              Items: newItems.length > 0 ? newItems : {}, // Update to an empty object if no items left
-            });
-
-            console.log("Successfully deleted from cart");
-          }
-        } catch (error) {
-          console.error("Error deleting from cart: ", error);
-        }
+        await deleteDoc(cartProductRef);
+        onProductDeleteSuccess(productId); 
+        toast.success("Cart product deleted successfully");
       }
-    });
-  };  
+    } catch (error) {
+      console.error("Error deleting from cart: ", error);
+    }
+  };
+
   return (
     <div className="product">
       <div className="product-img">
@@ -72,7 +65,7 @@ export const IndividualCartProduct = ({
       <div style={{ cursor: "pointer" }}>
         <DeleteIcon
           style={{ color: "red", fontSize: "32px" }}
-          onClick={handleCartProductDelete}
+          onClick={() => handleCartProductDelete(cartProduct.ID)}
         />
       </div>
     </div>

@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { fs, auth } from "../../Config/Config";
+import {
+  collection,
+  getDocs,
+  getDoc,
+  onSnapshot,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { Navbar } from "../navigationBar/Navbar";
-import { auth, fs } from "../../Config/Config";
 import { CartProducts } from "./CartProducts";
 import StripeCheckout from "react-stripe-checkout";
 import axios from "axios";
@@ -8,16 +17,6 @@ import { useHistory } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Modal } from "./Modal";
-import {
-  collection,
-  getDocs,
-  doc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  where,
-} from "firebase/firestore";
 
 toast.configure();
 
@@ -67,131 +66,95 @@ export const Cart = () => {
 
   // state of cart products
   const [cartProducts, setCartProducts] = useState([]);
+// Calculate the total quantity of products in the cart
+  const totalProductsInCart = cartProducts.reduce(
+    (accumulator, cartProduct) => accumulator + cartProduct.qty,
+    0
+  );
 
   // getting cart products from firestore collection and updating the state
   useEffect(() => {
     auth.onAuthStateChanged((user) => {
       if (user) {
-        const cartCollectionGroupRef = collection(fs, "Cart");
-        const q = query(cartCollectionGroupRef, where("__name__", "==", user.uid));
-
+        console.log("Fetching cart products for user:", user.uid);
+  
+        const cartCollectionRef = collection(fs, "Carts", user.uid,"products");
+  
         const unsubscribe = onSnapshot(
-          q,
-          (querySnapshot) => { 
+          cartCollectionRef,
+          (querySnapshot) => {
+            console.log("Query snapshot:", querySnapshot.docs);
+  
             const newCartProduct = querySnapshot.docs.map((doc) => ({
               ID: doc.id,
               ...doc.data(),
             }));
+  
+            console.log("Fetched cart products:", newCartProduct);
             setCartProducts(newCartProduct);
           },
           (error) => {
             console.error("Error fetching cart products:", error);
           }
         );
-
+  
         return () => unsubscribe();
       } else {
-        console.log("user is not signed in to retrieve cart");
+        console.log("User is not signed in to retrieve cart");
       }
     });
   }, []);
 
-  // getting the qty from cartProducts in a separate array
-  const qty = cartProducts.map((cartProduct) => cartProduct.qty);
-
-  // reducing the qty in a single value
-  const totalQty = qty.reduce(
-    (accumulator, currentValue) => accumulator + currentValue,
+  // Calculate the total quantity and total price of products in the cart
+  const totalQuantity = cartProducts.reduce(
+    (accumulator, cartProduct) => accumulator + cartProduct.qty,
     0
   );
 
-  // getting the TotalProductPrice from cartProducts in a separate array
-  const price = cartProducts.map(
-    (cartProduct) => cartProduct.TotalProductPrice
-  );
-
-  // reducing the price in a single value
-  const totalPrice = price.reduce(
-    (accumulator, currentValue) => accumulator + currentValue,
+  const totalPrice = cartProducts.reduce(
+    (accumulator, cartProduct) => accumulator + cartProduct.TotalProductPrice,
     0
   );
-
-  // global variable
-  let Product;
 
   // cart product increase function
   const cartProductIncrease = (cartProduct) => {
-    Product = cartProduct;
-    Product.qty = Product.qty + 1;
-    Product.TotalProductPrice = Product.qty * Product.price;
-    // updating in database
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        const productRef = doc(fs, "Cart " + user.uid, cartProduct.ID);
-        updateDoc(productRef, Product)
-          .then(() => {
-            console.log("increment added");
-            // Manually update the cartProducts state after the Firestore update
-            setCartProducts((prevCartProducts) =>
-              prevCartProducts.map((item) =>
-                item.ID === cartProduct.ID ? { ...Product } : item
-              )
-            );
-          })
-          .catch((error) => {
-            console.error("Error updating product: ", error);
-          });
-      } else {
-        console.log("user is not logged in to increment");
-      }
-    });
+    const updatedCartProducts = cartProducts.map((product) =>
+      product.ID === cartProduct.ID
+        ? {
+            ...product,
+            qty: product.qty + 1,
+            TotalProductPrice: product.price * (product.qty + 1),
+          }
+        : product
+    );
+
+    // Update the cart data in Firestore
+    if (auth.currentUser) {
+      const cartRef = doc(fs, "Cart", auth.currentUser.uid);
+      updateDoc(cartRef, { products: updatedCartPraoducts });
+    }
   };
 
   // cart product decrease functionality
   const cartProductDecrease = (cartProduct) => {
-    Product = cartProduct;
-    if (Product.qty > 1) {
-      Product.qty = Product.qty - 1;
-      Product.TotalProductPrice = Product.qty * Product.price;
-      // updating in database
-      auth.onAuthStateChanged((user) => {
-        if (user) {
-          const productRef = doc(fs, "Cart " + user.uid, cartProduct.ID);
-          updateDoc(productRef, Product)
-            .then(() => {
-              console.log("decrement");
-              // Manually update the cartProducts state after the Firestore update
-              setCartProducts((prevCartProducts) =>
-                prevCartProducts.map((item) =>
-                  item.ID === cartProduct.ID ? { ...Product } : item
-                )
-              );
-            })
-            .catch((error) => {
-              console.error("Error updating product: ", error);
-            });
-        } else {
-          console.log("user is not logged in to decrement");
-        }
-      });
+    if (cartProduct.qty > 1) {
+      const updatedCartProducts = cartProducts.map((product) =>
+        product.ID === cartProduct.ID
+          ? {
+              ...product,
+              qty: product.qty - 1,
+              TotalProductPrice: product.price * (product.qty - 1),
+            }
+          : product
+      );
+
+      // Update the cart data in Firestore
+      if (auth.currentUser) {
+        const cartRef = doc(fs, "Cart", auth.currentUser.uid);
+        updateDoc(cartRef, { products: updatedCartProducts });
+      }
     }
   };
-
-  // state of totalProducts
-  const [totalProducts, setTotalProducts] = useState(0);
-  // getting cart products
-  useEffect(() => {
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        const cartCollectionRef = collection(fs, "Cart " + user.uid);
-        const unsubscribe = onSnapshot(cartCollectionRef, (querySnapshot) => {
-          const qty = querySnapshot.size;
-          setTotalProducts(qty);
-        });
-        return () => unsubscribe();
-      }
-    });
-  }, []);
 
   // charging payment
   const history = useHistory();
@@ -218,7 +181,7 @@ export const Cart = () => {
         });
 
         const uid = auth.currentUser.uid;
-        const cartsSnapshot = await getDocs(collection(fs, "Cart " + uid));
+        const cartsSnapshot = await getDocs(collection(fs, "Cart", uid));
         cartsSnapshot.forEach((doc) => {
           deleteDoc(doc.ref);
         });
@@ -229,37 +192,55 @@ export const Cart = () => {
       console.error("Error processing payment: ", error);
     }
   };
-  const handleProductDelete = (productId) => {
-    // Filter out the product with the given ID from the cartProducts state
-    setCartProducts((prevCartProducts) =>
-      prevCartProducts.filter((product) => product.ID !== productId)
-    );
+
+  const handleProductDelete = async (productId) => {
+    const auth = getAuth();
+    try {
+      if (auth.currentUser) {
+        // Remove the product with the given ID from Firestore
+        const cartRef = doc(fs, `Carts/${auth.currentUser.uid}`);
+        const cartDoc = await getDoc(cartRef);
+
+        if (cartDoc.exists()) {
+          const updatedProducts = cartDoc
+            .data()
+            .products.filter((product) => product.ID !== productId);
+
+          await updateDoc(cartRef, { products: updatedProducts });
+          onProductDeleteSuccess(productId);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting from cart: ", error);
+    }
   };
+
+
   return (
     <>
-      <Navbar user={user} totalProducts={totalProducts} />
-      <br></br>
+      <Navbar user={user} totalProductsInCart={totalProductsInCart} />
+      <br />
       {cartProducts.length > 0 ? (
         <div className="container-fluid">
           <h1 className="text-center">Cart</h1>
           <div className="products-box cart">
-            <CartProducts
-              cartProducts={cartProducts}
-              cartProductIncrease={cartProductIncrease}
-              cartProductDecrease={cartProductDecrease}
-              removeProduct={handleProductDelete}
-            />
+          <CartProducts
+          cartProducts={cartProducts}
+          cartProductIncrease={cartProductIncrease}
+          cartProductDecrease={cartProductDecrease}
+          onProductDeleteSuccess={handleProductDelete}
+        />
           </div>
           <div className="summary-box">
             <h5>Cart Summary</h5>
-            <br></br>
+            <br />
             <div>
-              Total No of Products: <span>{totalQty}</span>
+              Total No of Products: <span>{totalQuantity}</span>
             </div>
             <div>
               Total Price to Pay: <span>$ {totalPrice}</span>
             </div>
-            <br></br>
+            <br />
             <StripeCheckout
               stripeKey="pk_test_51NRC5HB19CqeJrhWp5wt638E25qSNjaohB7TJVwURTWvoiz9cYBSOR37e5CsncI7TOVCeyIuJWS3JqtuXS0SbsxH00iAtYudOQ"
               token={handleToken}
@@ -268,7 +249,7 @@ export const Cart = () => {
               name="All Products"
               amount={totalPrice * 100}
             ></StripeCheckout>
-            <h6 className="text-center" style={{ marginTop: 7 + "px" }}>
+            <h6 className="text-center" style={{ marginTop: "7px" }}>
               OR
             </h6>
             <button
@@ -289,7 +270,7 @@ export const Cart = () => {
       {showModal === true && (
         <Modal
           TotalPrice={totalPrice}
-          totalQty={totalQty}
+          totalQty={totalQuantity}
           hideModal={hideModal}
         />
       )}
