@@ -16,7 +16,13 @@ export const IndividualCartProduct = ({
   onProductDeleteSuccess,
 }) => {
   const handleCartProductIncrease = () => {
-    cartProductIncrease(cartProduct);
+    // Increment the quantity and update total price
+    const updatedProduct = {
+      ...cartProduct,
+      qty: cartProduct.qty + 1,
+      TotalProductPrice: cartProduct.price * (cartProduct.qty + 1),
+    };
+    cartProductIncrease(updatedProduct);
   };
 
   const handleCartProductDecrease = () => {
@@ -26,7 +32,7 @@ export const IndividualCartProduct = ({
   const handleCartProductDelete = async (productId) => {
     const auth = getAuth();
     try {
-      if (auth.currentUser) {
+      if (auth.currentUsern) {
         const cartProductRef = doc(
           fs,
           `Carts/${auth.currentUser.uid}/products/${productId}`

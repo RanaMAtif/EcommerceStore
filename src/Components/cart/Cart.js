@@ -130,8 +130,11 @@ export const Cart = () => {
 
     // Update the cart data in Firestore
     if (auth.currentUser) {
-      const cartRef = doc(fs, "Cart", auth.currentUser.uid);
-      updateDoc(cartRef, { products: updatedCartPraoducts });
+      const cartRef = doc(
+        fs,
+        `Carts/${auth.currentUser.uid}/products/${cartProduct.ID}`
+      );
+      updateDoc(cartRef, { products: updatedCartProducts });
     }
   };
 
