@@ -19,7 +19,7 @@ export const Modal = ({ TotalPrice, totalQty, hideModal }) => {
   const history = useHistory();
 
   // form states
-  const [cell, setCell] = useState(null);
+  const [cell, setCell] = useState("");
   const [residentialAddress, setResidentialAddress] = useState("");
   const [cartPrice] = useState(TotalPrice);
   const [cartQty] = useState(totalQty);
@@ -41,7 +41,7 @@ export const Modal = ({ TotalPrice, totalQty, hideModal }) => {
       const userData = await getDoc(userDocRef);
 
       // Add buyer's personal info to Firestore collection "Buyer-Personal-Info"
-      await setDoc(collection(fs, "Buyer-Personal-Info"), {
+      await setDoc(doc(fs, "Buyer-Personal-Info", uid), {
         Name: userData.data().FirstName,
         Email: userData.data().Email,
         CellNo: cell,
@@ -51,14 +51,15 @@ export const Modal = ({ TotalPrice, totalQty, hideModal }) => {
       });
 
       // Fetch cart data from Firestore collection "Cart {uid}"
-      const cartRef = collection(fs, "Cart " + uid);
+      const cartRef = collection(fs, "Carts", uid, "products");
       const cartSnapshot = await getDocs(cartRef);
 
       // Move cart data to Firestore collection "Buyer-Cart {uid}"
       for (const snap of cartSnapshot.docs) {
         const data = snap.data();
         data.ID = snap.id;
-        await setDoc(collection(fs, "Buyer-Cart " + uid), data);
+        const buyerCartDocRef = doc(fs, "Buyer-Cart " + uid, data.ID);
+        await setDoc(buyerCartDocRef, data);
         await deleteDoc(snap.ref);
       }
 

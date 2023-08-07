@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback,useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Navbar } from "../navigationBar/Navbar";
 import { fs } from "../../Config/Config";
 import {
@@ -17,6 +17,8 @@ import Carousal from "../Carousal";
 import { Button } from "@mui/material";
 import Footer from "../footer/Footer";
 import { SideBar } from "../sideBar/SideBar";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const footerStyle = {
   position: "fixed",
@@ -97,7 +99,10 @@ export const Home = (props) => {
     let productsRef = collection(fs, "Products");
 
     if (selectedCategory !== "" && selectedCategory !== "All") {
-      productsRef = query(productsRef, where("category", "==", selectedCategory));
+      productsRef = query(
+        productsRef,
+        where("category", "==", selectedCategory)
+      );
     }
 
     if (selectedSubcategories.length > 0) {
@@ -155,26 +160,33 @@ export const Home = (props) => {
   // Getting cart products
   useEffect(() => {
     const auth = getAuth();
+    let sub = true;
+    // Auth listener cleanup function
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         const cartRef = collection(fs, "Carts", user.uid, "products");
+
+        // Cart snapshot listener cleanup function
+
         const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-          const totalProducts = snapshot.docs.reduce(
-            (acc, doc) => acc + doc.data().qty,
-            0
-          );
-          if (!isMounted.current) return; // Skip state update if unmounted
-          setTotalProductsInCart(totalProducts);
+          if (sub) {
+            const totalProducts = snapshot.docs.reduce(
+              (acc, doc) => acc + doc.data().qty,
+              0
+            );
+            setTotalProductsInCart(totalProducts);
+          }
         });
-  
-        // Clean up the cart listener when the component unmounts
+
+        // Return a cleanup function for the cart snapshot listener
         return () => {
+          sub = false;
           unsubscribeCart(); // Unsubscribe from the snapshot listener
         };
       }
     });
-  
-    // Clean up the auth listener when the component unmounts
+
+    // Return a cleanup function for the auth listener
     return () => {
       unsubscribeAuth();
     };
@@ -228,23 +240,28 @@ export const Home = (props) => {
         const productSnapshot = await getDoc(productRef);
 
         if (productSnapshot.exists()) {
-          // If the product already exists, update its quantity and total product price
-          const existingProductData = productSnapshot.data();
-          const updatedQty = existingProductData.qty + 1;
-          const updatedTotalProductPrice = updatedQty * product.price;
-
-          await productRef.update({
-            qty: updatedQty,
-            TotalProductPrice: updatedTotalProductPrice,
+          // If the product already exists, show a notification and return
+          toast.info("This product is already in your cart", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
           });
-        } else {
-          // If the product does not exist, add it to the cart with quantity and total product price
-          const productWithQtyAndTotalPrice = {
-            ...product,
-            qty: 1,
-            TotalProductPrice: product.price,
-          };
+          return;
+        }
 
+        // If the product does not exist, add it to the cart with quantity and total product price
+        const productWithQtyAndTotalPrice = {
+          ...product,
+          qty: 1,
+          TotalProductPrice: product.price,
+        };
+
+        // Check if the component is still mounted before updating the state
+        if (isMounted.current) {
           await setDoc(productRef, productWithQtyAndTotalPrice);
         }
 

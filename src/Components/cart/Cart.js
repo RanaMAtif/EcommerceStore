@@ -1,9 +1,8 @@
-import React, { useState, useEffect,useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { fs, auth } from "../../Config/Config";
 import {
   collection,
   getDocs,
-  getDoc,
   onSnapshot,
   doc,
   updateDoc,
@@ -38,8 +37,9 @@ export const Cart = () => {
   // getting current user function
   function GetCurrentUser() {
     const [user, setUser] = useState(null);
+
     useEffect(() => {
-      auth.onAuthStateChanged((user) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
         if (user) {
           getDocs(collection(fs, "users"))
             .then((querySnapshot) => {
@@ -47,7 +47,9 @@ export const Cart = () => {
                 (doc) => doc.id === user.uid
               );
               if (userData) {
-                setUser(userData.data().FirstName);
+                if (isMounted.current) {
+                  setUser(userData.data().FirstName);
+                }
               } else {
                 setUser(null);
               }
@@ -59,7 +61,12 @@ export const Cart = () => {
           setUser(null);
         }
       });
+
+      return () => {
+        unsubscribe();
+      };
     }, []);
+
     return user;
   }
 
@@ -75,26 +82,35 @@ export const Cart = () => {
 
   // getting cart products from firestore collection and updating the state
   useEffect(() => {
-    const cartCollectionRef = collection(fs, "Carts", auth.currentUser.uid, "products");
-    const unsubscribe = onSnapshot(
-      cartCollectionRef,
-      (querySnapshot) => {
-        const newCartProduct = querySnapshot.docs.map((doc) => ({
-          ID: doc.id,
-          ...doc.data(),
-        }));
-        if (!isMounted.current) return; // Skip state update if unmounted
-        setCartProducts(newCartProduct);
-      },
-      (error) => {
-        console.error("Error fetching cart products:", error);
-      }
-    );
-  
-    return () => {
-      unsubscribe(); // Unsubscribe from the snapshot listener
-      isMounted.current = false; // Set the ref to false when unmounting
-    };
+    const auth = getAuth();
+    if (auth.currentUser) {
+      const cartCollectionRef = collection(
+        fs,
+        "Carts",
+        auth.currentUser.uid,
+        "products"
+      );
+      const unsubscribe = onSnapshot(
+        cartCollectionRef,
+        (querySnapshot) => {
+          const newCartProduct = querySnapshot.docs.map((doc) => ({
+            ID: doc.id,
+            ...doc.data(),
+          }));
+          if (isMounted.current) {
+            setCartProducts(newCartProduct);
+          }
+        },
+        (error) => {
+          console.error("Error fetching cart products:", error);
+        }
+      );
+
+      return () => {
+        unsubscribe(); // Unsubscribe from the snapshot listener
+        isMounted.current = false; // Set the ref to false when unmounting
+      };
+    }
   }, []);
 
   // Calculate the total quantity and total price of products in the cart
@@ -210,24 +226,23 @@ export const Cart = () => {
       console.error("Error processing payment: ", error);
     }
   };
-
   const handleProductDelete = async (productId) => {
-    const auth = getAuth();
     try {
+      const auth = getAuth();
       if (auth.currentUser) {
-        // Remove the product with the given ID from Firestore
+        // Reference to the cart document
         const cartRef = doc(fs, `Carts/${auth.currentUser.uid}`);
-        const cartDoc = await getDoc(cartRef);
 
-        if (cartDoc.exists()) {
-          await deleteDoc(cartDoc);
-        }
+        // Reference to the specific product document within the cart
+        const productRef = doc(cartRef, "products", productId);
+
+        // Delete the product document
+        await deleteDoc(productRef);
       }
     } catch (error) {
-      console.error("Error deleting from cart: ", error);
+      console.error("Error deleting product from cart: ", error);
     }
   };
-
   return (
     <>
       <Navbar user={user} totalProductsInCart={totalProductsInCart} />
@@ -235,7 +250,7 @@ export const Cart = () => {
       {cartProducts.length > 0 ? (
         <div className="container-fluid">
           <h1 className="text-center">Cart</h1>
-          <div className="products-box cart">
+          <div className="products-box cart" style={{ marginLeft: "200px" }}>
             <CartProducts
               cartProducts={cartProducts}
               cartProductIncrease={cartProductIncrease}

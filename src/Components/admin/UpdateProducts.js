@@ -102,7 +102,6 @@ export const UpdateProducts = () => {
   const handleModalSubmit = async (e) => {
     e.preventDefault();
     setImagePreview(null);
-
     if (selectedProduct) {
       const updatedProductData = {
         title: updatedTitle,
