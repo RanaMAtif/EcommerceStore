@@ -1,8 +1,8 @@
-import React, { useState, useEffect,useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Box from "@mui/joy/Box";
 import Sheet from "@mui/joy/Sheet";
 import { fs } from "../../Config/Config";
-import { getDoc,doc } from "firebase/firestore";
+import { getDoc, doc } from "firebase/firestore";
 
 export const SideBar = ({
   selectedCategory,
@@ -21,7 +21,7 @@ export const SideBar = ({
         try {
           const docRef = doc(fs, "Categories", selectedCategory);
           const docSnap = await getDoc(docRef);
-  
+
           if (docSnap.exists()) {
             const data = docSnap.data();
             const subcategoryList = Object.keys(data);
@@ -36,7 +36,7 @@ export const SideBar = ({
           console.error("Error fetching subcategories: ", error);
         }
       };
-  
+
       fetchSubcategories();
     } else {
       setSubcategories([]);
@@ -52,7 +52,7 @@ export const SideBar = ({
           try {
             const docRef = doc(fs, "Categories", selectedCategory);
             const docSnap = await getDoc(docRef);
-  
+
             if (docSnap.exists()) {
               const data = docSnap.data();
               const subcategoryBrandsData = data[subcat] || [];
@@ -76,43 +76,50 @@ export const SideBar = ({
   }, [selectedCategory, selectedSubcategories]);
 
   // Subcategory checkbox change handler
-  const handleSubcategoryCheckboxChange = useCallback((subcategory) => {
-    if (selectedSubcategories.includes(subcategory)) {
-      setSelectedSubcategories((prevSelected) =>
-        prevSelected.filter((item) => item !== subcategory)
-      );
-    } else {
-      setSelectedSubcategories((prevSelected) => [
-        ...prevSelected,
-        subcategory,
-      ]);
-    }
-  },[selectedSubcategories, setSelectedSubcategories])
+  const handleSubcategoryCheckboxChange = useCallback(
+    (subcategory) => {
+      if (selectedSubcategories.includes(subcategory)) {
+        setSelectedSubcategories((prevSelected) =>
+          prevSelected.filter((item) => item !== subcategory)
+        );
+      } else {
+        setSelectedSubcategories((prevSelected) => [
+          ...prevSelected,
+          subcategory,
+        ]);
+      }
+    },
+    [selectedSubcategories, setSelectedSubcategories]
+  );
   // Brand checkbox change handler
-  const handleBrandCheckboxChange = useCallback((brand) => {
-    if (selectedBrands.includes(brand)) {
-      setSelectedBrands((prevBrands) =>
-        prevBrands.filter((item) => item !== brand)
-      );
-    } else {
-      setSelectedBrands((prevBrands) => [...prevBrands, brand]);
-    }
-  },[selectedBrands, setSelectedBrands])
+  const handleBrandCheckboxChange = useCallback(
+    (brand) => {
+      if (selectedBrands.includes(brand)) {
+        setSelectedBrands((prevBrands) =>
+          prevBrands.filter((item) => item !== brand)
+        );
+      } else {
+        setSelectedBrands((prevBrands) => [...prevBrands, brand]);
+      }
+    },
+    [selectedBrands, setSelectedBrands]
+  );
 
   return (
     <Box
       sx={{
-        display: "flex",
+        display: "fixed",
+        direction: "row",
         borderRadius: "sm",
         overflow: "auto",
-        position: "fixed",
+        position: "absolute",
         bottom: 0,
         left: 0,
-        width: "250px", // Adjust the width of the sidebar as desired
-        height: "calc(100vh - 130px)", // Adjust the height based on your layout
-        backgroundColor: "#072859", // Set the background color to #072859
-        color: "white", // Set the text color to white
-        padding: "20px", // Add some padding to the sidebar content
+        width: "250px", 
+        height: "calc(100vh - 130px)", 
+        backgroundColor: "#072859", 
+        color: "white", 
+        padding: "20px", 
       }}
     >
       <Sheet open>
