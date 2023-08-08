@@ -115,11 +115,11 @@ export const SideBar = ({
         position: "absolute",
         bottom: 0,
         left: 0,
-        width: "250px", 
-        height: "calc(100vh - 130px)", 
-        backgroundColor: "#072859", 
-        color: "white", 
-        padding: "20px", 
+        width: "250px",
+        height: "770px",
+        backgroundColor: "#072859",
+        color: "white",
+        padding: "20px",
       }}
     >
       <Sheet open>
