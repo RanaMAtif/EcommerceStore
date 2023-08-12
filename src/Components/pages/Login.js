@@ -10,13 +10,19 @@ import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 import { object, string } from "yup";
 import { auth } from "../../Config/Config";
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword } from "firebase/auth";
 import logsiga from "../../Images/logsiga.png";
 import logsigb from "../../Images/logsigb.png";
 import lodsigc from "../../Images/lodsigc.png";
 import logsigd from "../../Images/logsigd.png";
 import logsige from "../../Images/logsige.png";
 import logsigf from "../../Images/logsigf.png";
+import Power from "../../Images/Power.png";
+import {
+  signInWithPopup,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
+} from "firebase/auth";
 const initialValues = {
   email: "",
   password: "",
@@ -30,7 +36,7 @@ const validation = object({
     .min(8, "Password must be at least 8 characters long"),
 });
 
-export const Login = () => { 
+export const Login = () => {
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -41,7 +47,32 @@ export const Login = () => {
   useEffect(() => {
     setCurrentImageUrl(imageUrls[Math.floor(Math.random() * imageUrls.length)]);
   }, []);
+  //Facebook log in
+  const handleFacebookSignUp = () => {
+    const provider = new FacebookAuthProvider();
 
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        console.log("Facebook signup successful:", user);
+      })
+      .catch((error) => {
+        setErrorMsg(error.message);
+      });
+  };
+
+  //Google log in
+  const handleGoogleSignUp = () => {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        console.log("Google signup successful:", user);
+      })
+      .catch((error) => {
+        setErrorMsg(error.message);
+      });
+  };
   const handleLogin = async (values) => {
     const { email, password } = values;
 
@@ -51,12 +82,14 @@ export const Login = () => {
 
       setEmailError(false);
       setPasswordError(false);
-      setSuccessMsg("Login Successfull. You will get redirected to the Home page");
+      setSuccessMsg(
+        "Login Successfull. You will get redirected to the Home page"
+      );
 
       setTimeout(() => {
         setSuccessMsg("");
-        // Navigate to the Home page using window.location.href
-        window.location.href = "/"; // Replace '/' with the desired URL
+        
+        window.location.href = "/"; 
       }, 3000);
     } catch (error) {
       const errorCode = error.code;
@@ -90,7 +123,7 @@ export const Login = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          height: "11%",
+          height: "20",
         }}
       >
         <img
@@ -99,7 +132,13 @@ export const Login = () => {
           style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
         />
       </Box>
+
       <Box sx={{ flex: 1, p: 0 }}>
+        <img
+          src={Power}
+          alt="PowerLog"
+          style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+        />
         <Typography component="h1" variant="h5" align="center">
           Log in
         </Typography>
@@ -174,6 +213,24 @@ export const Login = () => {
                   <Typography variant="body2" align="center">
                     Dont have an account? <a href="/signup">SignUp Here</a>
                   </Typography>
+                  <Button
+                    onClick={handleGoogleSignUp}
+                    fullWidth
+                    variant="contained"
+                    color="warning"
+                    sx={{ mt: 2, mb: 1 }}
+                  >
+                    Log In with Google
+                  </Button>
+                  <Button
+                    onClick={handleFacebookSignUp}
+                    fullWidth
+                    variant="contained"
+                    color="secondary"
+                    sx={{ mt: 2, mb: 1 }}
+                  >
+                    Log In with Facebook
+                  </Button>
                 </Grid>
               </Grid>
             </Box>

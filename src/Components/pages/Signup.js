@@ -14,9 +14,15 @@ import lodsigc from "../../Images/lodsigc.png";
 import logsigd from "../../Images/logsigd.png";
 import logsige from "../../Images/logsige.png";
 import logsigf from "../../Images/logsigf.png";
+import Power from "../../Images/Power.png";
 import { Grid } from "@mui/material";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import {doc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
+import {
+  signInWithPopup,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
+} from "firebase/auth";
 
 const imageUrls = [logsiga, logsigb, lodsigc, logsigd, logsige, logsigf];
 const initialValues = {
@@ -48,13 +54,41 @@ export const Signup = () => {
     setCurrentImageUrl(imageUrls[Math.floor(Math.random() * imageUrls.length)]);
   }, []);
 
+  //Facebook sign up
+  const handleFacebookSignUp = () => {
+    const provider = new FacebookAuthProvider();
+
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        console.log("Facebook signup successful:", user);
+
+        
+      })
+      .catch((error) => {
+        setErrorMsg(error.message);
+      });
+  };
+
+  //Google sign up
+  const handleGoogleSignUp = () => {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        console.log("Google signup successful:", user);
+      })
+      .catch((error) => {
+        setErrorMsg(error.message);
+      });
+  };
   const handleSignup = (values) => {
     const { firstName, lastName, email, password } = values;
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         const user = userCredential.user;
         console.log(user);
-  
+
         setDoc(doc(fs, "users", user.uid), {
           FirstName: firstName,
           LastName: lastName,
@@ -110,6 +144,11 @@ export const Signup = () => {
       </Box>
 
       <Box sx={{ flex: 1, p: 0 }}>
+        <img
+          src={Power}
+          alt="Signup"
+          style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+        />
         <Typography component="h1" variant="h5" align="center">
           Sign Up
         </Typography>
@@ -194,6 +233,24 @@ export const Signup = () => {
               <Typography variant="body2" align="center">
                 Already have an account? <a href="/login">Login Here</a>
               </Typography>
+              <Button
+                onClick={handleGoogleSignUp}
+                fullWidth
+                variant="contained"
+                color="warning"
+                sx={{ mt: 2, mb: 1 }}
+              >
+                Sign Up with Google
+              </Button>
+              <Button
+                onClick={handleFacebookSignUp}
+                fullWidth
+                variant="contained"
+                color="secondary"
+                sx={{ mt: 2, mb: 1 }}
+              >
+                Sign Up with Facebook
+              </Button>
             </Box>
           </Form>
         </Formik>

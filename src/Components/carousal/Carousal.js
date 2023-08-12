@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ref, listAll, getDownloadURL } from "firebase/storage";
-import { storage } from "../Config/Config"; // Replace with the correct path to your Firebase config
+import { storage } from "../../Config/Config";
 
 import { autoPlay } from "react-swipeable-views-utils";
 import SwipeableViews from "react-swipeable-views";
@@ -12,25 +12,34 @@ function Carousal() {
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
+    let sub = true;
+    console.log("mount");
     const fetchImages = async () => {
-      try {
-        const storageRef = ref(storage, "carousel-images");
-        const listResult = await listAll(storageRef);
+      if (sub) {
+        try {
+          const storageRef = ref(storage, "carousel-images");
+          const listResult = await listAll(storageRef);
 
-        const imageUrls = await Promise.all(
-          listResult.items.map(async (item) => {
-            const url = await getDownloadURL(item);
-            return { imgPath: url };
-          })
-        );
+          const imageUrls = await Promise.all(
+            listResult.items.map(async (item) => {
+              const url = await getDownloadURL(item);
+              return { imgPath: url };
+            })
+          );
 
-        setImages(imageUrls);
-      } catch (error) {
-        console.error("Error fetching images from Firebase Storage:", error);
+          setImages(imageUrls);
+        } catch (error) {
+          console.error("Error fetching images from Firebase Storage:", error);
+        }
       }
     };
 
     fetchImages();
+    return () => {
+      console.log("unmount");
+
+      sub = false;
+    };
   }, []);
 
   const handleStepChange = (step) => {
@@ -45,7 +54,7 @@ function Carousal() {
         alignItems: "center",
         justifyContent: "center",
         padding: "20px",
-        marginBottom: "300px", // Add margin bottom to create space
+        marginBottom: "300px",
       }}
     >
       <div style={{ maxWidth: "1000px", width: "100%", height: "300px" }}>
@@ -66,7 +75,7 @@ function Carousal() {
             ))}
           </AutoPlaySwipeableViews>
         ) : (
-          <p>No images available</p>
+          <p>Loading</p>
         )}
       </div>
     </section>

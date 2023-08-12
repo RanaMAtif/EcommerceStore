@@ -1,57 +1,75 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useHistory } from "react-router-dom";
 import { Navbar } from "../navigationBar/Navbar";
 import { fs } from "../../Config/Config";
 import {
   doc,
-  setDoc,
   getDoc,
   collection,
   getDocs,
-  onSnapshot,
   query,
   where,
+  onSnapshot,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { IndividualFilteredProduct } from "../IndividualFilteredProduct";
-import Carousal from "../Carousal";
+import Carousal from "../carousal/Carousal";
 import { Button } from "@mui/material";
-import Footer from "../footer/Footer";
 import { SideBar } from "../sideBar/SideBar";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { Footer } from "../footer/Footer";
 
 const footerStyle = {
   position: "fixed",
   left: 0,
   bottom: 0,
   width: "100%",
-  zIndex: 1, // Ensure the footer appears above other content
+  zIndex: 1,
 };
 
-export const Home = (props) => {
+export const Home = () => {
+  const history = useHistory();
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubcategories, setSelectedSubcategories] = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [noProductsFound, setNoProductsFound] = useState(false);
   const [products, setProducts] = useState([]);
   const [totalProductsInCart, setTotalProductsInCart] = useState(0);
-  const isMounted = useRef(true);
-  // Getting current user uid
-  const GetUserUid = () => {
-    const [uid, setUid] = useState(null);
-    useEffect(() => {
-      const auth = getAuth();
 
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          setUid(user.uid);
-        }
-      });
-    }, []);
-    return uid;
-  };
+  // ...
 
-  const uid = GetUserUid();
+  // Getting cart products
+  useEffect(() => {
+    const auth = getAuth();
+    let sub = true;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const cartRef = collection(fs, "Carts", user.uid, "products");
+
+        // Cart snapshot listener cleanup function
+
+        const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
+          if (sub) {
+            const totalProducts = snapshot.docs.reduce(
+              (acc, doc) => acc + doc.data().qty,
+              0
+            );
+            setTotalProductsInCart(totalProducts);
+          }
+        });
+
+        return () => {
+          sub = false;
+          unsubscribeCart();
+        };
+      }
+    });
+
+    // Return a cleanup function for the auth listener
+    return () => {
+      unsubscribeAuth();
+    };
+  }, []);
 
   // Getting current user
   const GetCurrentUser = () => {
@@ -86,7 +104,6 @@ export const Home = (props) => {
         }
       });
 
-      // Clean up the subscription when the component unmounts
       return () => unsubscribe();
     }, []);
 
@@ -157,41 +174,6 @@ export const Home = (props) => {
     getProducts();
   }, [getProducts]);
 
-  // Getting cart products
-  useEffect(() => {
-    const auth = getAuth();
-    let sub = true;
-    // Auth listener cleanup function
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const cartRef = collection(fs, "Carts", user.uid, "products");
-
-        // Cart snapshot listener cleanup function
-
-        const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-          if (sub) {
-            const totalProducts = snapshot.docs.reduce(
-              (acc, doc) => acc + doc.data().qty,
-              0
-            );
-            setTotalProductsInCart(totalProducts);
-          }
-        });
-
-        // Return a cleanup function for the cart snapshot listener
-        return () => {
-          sub = false;
-          unsubscribeCart(); // Unsubscribe from the snapshot listener
-        };
-      }
-    });
-
-    // Return a cleanup function for the auth listener
-    return () => {
-      unsubscribeAuth();
-    };
-  }, []);
-
   // Cleanup function
 
   useEffect(() => {
@@ -229,49 +211,8 @@ export const Home = (props) => {
     };
   }, []);
 
-  // Add to cart
-  const addToCart = async (product) => {
-    if (uid !== null) {
-      const cartRef = collection(fs, "Carts", uid, "products");
-
-      try {
-        // Check if the product already exists in the user's cart
-        const productRef = doc(cartRef, product.ID);
-        const productSnapshot = await getDoc(productRef);
-
-        if (productSnapshot.exists()) {
-          // If the product already exists, show a notification and return
-          toast.info("This product is already in your cart", {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-            progress: undefined,
-          });
-          return;
-        }
-
-        // If the product does not exist, add it to the cart with quantity and total product price
-        const productWithQtyAndTotalPrice = {
-          ...product,
-          qty: 1,
-          TotalProductPrice: product.price,
-        };
-
-        // Check if the component is still mounted before updating the state
-        if (isMounted.current) {
-          await setDoc(productRef, productWithQtyAndTotalPrice);
-        }
-
-        console.log("Product successfully added to cart");
-      } catch (error) {
-        console.error("Error adding product to cart: ", error);
-      }
-    } else {
-      props.history.push("/login");
-    }
+  const handleProductClick = (productId) => {
+    history.push(`/product/${productId}`);
   };
 
   // Filtered products state and functions
@@ -286,8 +227,8 @@ export const Home = (props) => {
     <>
       <Navbar
         user={user}
-        totalProductsInCart={totalProductsInCart}
         handleCategoryChange={handleCategoryChange}
+        totalProductsInCart={totalProductsInCart}
       />
       <br />
       {selectedCategory !== "" && (
@@ -331,7 +272,7 @@ export const Home = (props) => {
                 <IndividualFilteredProduct
                   key={individualFilteredProduct.ID}
                   individualFilteredProduct={individualFilteredProduct}
-                  addToCart={addToCart}
+                  onClickProductDetails={handleProductClick}
                 />
               ))}
             </div>

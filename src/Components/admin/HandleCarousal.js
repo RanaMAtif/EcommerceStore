@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { getStorage, ref, list, getDownloadURL, deleteObject, uploadBytes } from "firebase/storage";
+import {
+  getStorage,
+  ref,
+  list,
+  getDownloadURL,
+  deleteObject,
+  uploadBytes,
+} from "firebase/storage";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -103,7 +110,13 @@ function HandleCarousal() {
   const [selectedDeleteImageUrl, setSelectedDeleteImageUrl] = useState("");
 
   useEffect(() => {
-    fetchImagesList();
+    let sub = true;
+    if (sub) {
+      fetchImagesList();
+    }
+    return () => {
+      sub = false;
+    };
   }, []);
 
   const fetchImagesList = async () => {
@@ -214,7 +227,7 @@ function HandleCarousal() {
             </Typography>
           </UploadContainer>
           <ImagePreview
-            key={selectedImageUrl} // Add a key prop to the ImagePreview
+            key={selectedImageUrl}
             style={{
               backgroundImage: selectedImageUrl
                 ? `url(${selectedImageUrl})`

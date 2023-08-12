@@ -1,20 +1,27 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "../../Images/logo.png";
-import { Icon } from "react-icons-kit";
-import { shoppingCart } from "react-icons-kit/feather/shoppingCart";
 import { auth } from "../../Config/Config";
 import { useHistory } from "react-router-dom";
-import { Button, Menu, MenuItem, Typography } from "@mui/material";
+import {
+  Button,
+  Menu,
+  MenuItem,
+  Typography,
+  IconButton,
+  Badge,
+} from "@mui/material";
+import { ShoppingCart } from "@mui/icons-material";
 import FilterNav from "./FilterNav";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
+import { SearchProduct } from "./SearchProduct";
 const adminEmails = {
   "atifranaofficial@gmail.com": true,
 };
 
 export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
   const history = useHistory();
-  const location = useLocation(); // Get the current route location
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = React.useState(null);
   const handleLogout = () => {
     auth.signOut().then(() => {
@@ -55,13 +62,21 @@ export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
         sx={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "center", // Center the FilterNav component
+          justifyContent: "center",
         }}
       >
-        {/* Conditionally render the FilterNav component */}
-        {location.pathname !== "/cart" && (
+        {location.pathname === "/" && (
           <FilterNav handleCategoryChange={handleCategoryChange} />
         )}
+      </div>
+      <div
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {location.pathname === "/" && <SearchProduct />}
       </div>
 
       <div className="rightside" sx={{ display: "flex", alignItems: "center" }}>
@@ -113,9 +128,13 @@ export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
               sx={{ display: "flex", alignItems: "center", ml: 2 }}
             >
               <Link className="navlink" to="/cart">
-                <Icon icon={shoppingCart} size={20} />
-              </Link> 
-              <span className="cart-indicator">{totalProductsInCart}</span>
+                <IconButton aria-label="Show cart items" color="inherit">
+                  <Badge badgeContent={totalProductsInCart} color="error">
+                    <ShoppingCart />
+                  </Badge>
+                </IconButton>
+              </Link>
+              {/* <span className="cart-indicator">{totalProductsInCart}</span> */}
             </div>
             <Button
               onClick={handleLogout}

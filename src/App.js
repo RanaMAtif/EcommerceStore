@@ -6,6 +6,7 @@ import { Signup } from "./Components/pages/Signup";
 import { Cart } from "./Components/cart/Cart";
 import AdminPanel from "./Components/admin/AdminPanel";
 import { SideBar } from "./Components/sideBar/SideBar";
+import ProductInfo from "./Components/product/ProductInfo";
 export const App = () => {
   return (
     <BrowserRouter>
@@ -14,6 +15,7 @@ export const App = () => {
         <Route path="/signup" component={Signup} />
         <Route path="/login" component={Login} />
         <Route path="/side" component={SideBar} />
+        <Route path="/product/:productId" component={ProductInfo}/>
         <Route path="/admin" component={AdminPanel} />
         <Route path="/cart" component={Cart} />
       </Switch>

@@ -1,9 +1,11 @@
 import * as React from "react";
+import { useState } from "react";
 import footer from "../../Images/footer.png";
 import AspectRatio from "@mui/joy/AspectRatio";
 import Box from "@mui/joy/Box";
 import Button from "@mui/joy/Button";
 import IconButton from "@mui/joy/IconButton";
+import { Modal } from "@mui/material";
 import Card from "@mui/joy/Card";
 import CardContent from "@mui/joy/CardContent";
 import Divider from "@mui/joy/Divider";
@@ -17,8 +19,36 @@ import Sheet from "@mui/joy/Sheet";
 import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import SendIcon from "@mui/icons-material/Send";
+import { ContactUs } from "./ContactUs";
+import { AboutUs } from "./AboutUs";
+const modalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  bgcolor: "#ffffff",
+  border: "2px solid #000",
+  boxShadow: 24,
+  p: 4,
+};
+export const Footer = () => {
+  const [contactUsModalOpen, setContactUsModalOpen] = useState(false);
+  const [aboutUsModalOpen, setAboutUsModalOpen] = useState(false);
 
-export default function Footer() {
+  const handleOpenContactUsModal = () => {
+    setContactUsModalOpen(true);
+  };
+
+  const handleCloseContactUsModal = () => {
+    setContactUsModalOpen(false);
+  };
+  const handleOpenAboutUsModal = () => {
+    setAboutUsModalOpen(true);
+  };
+
+  const handleCloseAboutUsModal = () => {
+    setAboutUsModalOpen(false);
+  };
   return (
     <Sheet
       variant="solid"
@@ -99,10 +129,14 @@ export default function Footer() {
             <ListSubheader>Customer Care</ListSubheader>
             <List>
               <ListItem>
-                <ListItemButton>Contact us</ListItemButton>
+                <ListItemButton onClick={handleOpenContactUsModal}>
+                  Contact us
+                </ListItemButton>
               </ListItem>
               <ListItem>
-                <ListItemButton>About us</ListItemButton>
+                <ListItemButton onClick={handleOpenAboutUsModal}>
+                  About us
+                </ListItemButton>
               </ListItem>
             </List>
           </ListItem>
@@ -127,6 +161,30 @@ export default function Footer() {
           Copyright 2023
         </Typography>
       </Box>
+      <Modal
+        open={contactUsModalOpen}
+        onClose={handleCloseContactUsModal}
+        aria-labelledby="contact-us-modal-title"
+      >
+        <Box sx={{ ...modalStyle, width: "60%" }}>
+          <Typography id="contact-us-modal-title" variant="h6">
+            Contact Us
+          </Typography>
+          <ContactUs onClose={handleCloseContactUsModal} />
+        </Box>
+      </Modal>
+      <Modal
+        open={aboutUsModalOpen}
+        onClose={handleCloseAboutUsModal}
+        aria-labelledby="about-us-modal-title"
+      >
+        <Box sx={{ ...modalStyle, width: "60%" }}>
+          <Typography id="about-us-modal-title" variant="h6">
+            About Us
+          </Typography>
+          <AboutUs onClose={handleCloseAboutUsModal} />
+        </Box>
+      </Modal>
     </Sheet>
   );
-}
+};
