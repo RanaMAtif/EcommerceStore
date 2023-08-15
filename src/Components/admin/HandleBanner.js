@@ -99,7 +99,7 @@ export default function HandleBanner() {
             color="primary"
             variant="outlined"
             startIcon={<CloudDownloadIcon />}
-          > 
+          >
             Upload Banner
           </Button>
         </DialogActions>

@@ -140,11 +140,7 @@ const ProductInfo = () => {
             setUserEmail(userData.Email);
             setUserFirstName(userData.FirstName);
           }
-        } else {
-          // If user is not logged in, calculate totalProductsInCart from local storage
-
-          setTotalProductsInCart(totalProducts);
-        }
+        } 
       } catch (error) {
         console.error("Error fetching user data: ", error);
       }
