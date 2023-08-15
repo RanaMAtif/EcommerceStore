@@ -24,6 +24,7 @@ export const Cart = () => {
   // show modal state
   const [showModal, setShowModal] = useState(false);
   const isMounted = useRef(true);
+  const [user, setUser] = useState(null);
   // trigger modal
   const triggerModal = () => {
     setShowModal(true);
@@ -34,44 +35,6 @@ export const Cart = () => {
     setShowModal(false);
   };
 
-  // getting current user function
-  function GetCurrentUser() {
-    const [user, setUser] = useState(null);
-
-    useEffect(() => {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        if (user) {
-          getDocs(collection(fs, "users"))
-            .then((querySnapshot) => {
-              const userData = querySnapshot.docs.find(
-                (doc) => doc.id === user.uid
-              );
-              if (userData) {
-                if (isMounted.current) {
-                  setUser(userData.data().FirstName);
-                }
-              } else {
-                setUser(null);
-              }
-            })
-            .catch((error) => {
-              console.error("Error fetching user data: ", error);
-            });
-        } else {
-          setUser(null);
-        }
-      });
-
-      return () => {
-        unsubscribe();
-      };
-    }, []);
-
-    return user;
-  }
-
-  const user = GetCurrentUser();
-
   // state of cart products
   const [cartProducts, setCartProducts] = useState([]);
   // Calculate the total quantity of products in the cart
@@ -81,7 +44,22 @@ export const Cart = () => {
   );
 
   // getting cart products from firestore collection and updating the state
+  // Loading state to indicate data fetching
+  const [loading, setLoading] = useState(true);
+
+
   useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+    });
+
+    return () => unsubscribe(); // Cleanup when unmounting
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      console.log("user", user);
     const auth = getAuth();
     if (auth.currentUser) {
       const cartCollectionRef = collection(
@@ -97,21 +75,23 @@ export const Cart = () => {
             ID: doc.id,
             ...doc.data(),
           }));
-          if (isMounted.current) {
-            setCartProducts(newCartProduct);
-          }
+          setCartProducts(newCartProduct);
+          setLoading(false); // Set loading to false when data is fetched
         },
         (error) => {
           console.error("Error fetching cart products:", error);
+          setLoading(false); // Set loading to false in case of error
         }
       );
 
       return () => {
-        unsubscribe(); // Unsubscribe from the snapshot listener
-        isMounted.current = false; // Set the ref to false when unmounting
+        unsubscribe();
+        isMounted.current = false;
       };
-    }
-  }, []);
+    } else {
+      setLoading(false); // Set loading to false if user is not authenticated
+    }}
+  }, [user]);
 
   // Calculate the total quantity and total price of products in the cart
   const totalQuantity = cartProducts.reduce(
@@ -191,7 +171,7 @@ export const Cart = () => {
       const { status } = response.data;
       console.log(status);
       if (status === "success") {
-        history.push("/");
+        history.push("/home");
         toast.success("Your order has been placed successfully", {
           position: "top-right",
           autoClose: 5000,
@@ -247,10 +227,22 @@ export const Cart = () => {
     <>
       <Navbar user={user} totalProductsInCart={totalProductsInCart} />
       <br />
-      {cartProducts.length > 0 ? (
+      {loading ? (
+        <div>Loading...</div>
+      ) : cartProducts.length > 0 ? (
         <div className="container-fluid">
-          <h1 className="text-center">Cart</h1>
-          <div className="products-box cart" style={{ marginLeft: "200px" }}>
+          <h1 style={{ display: "flex", justifyContent: "center" }}>Cart</h1>
+          <div
+            className="products-box cart"
+            style={{
+              width: "100%",
+              marginLeft: "auto",
+              marginRight: "auto",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             <CartProducts
               cartProducts={cartProducts}
               cartProductIncrease={cartProductIncrease}

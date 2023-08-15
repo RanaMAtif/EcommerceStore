@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useHistory } from "react-router-dom";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const footerStyle = {
   position: "fixed",
@@ -47,16 +48,26 @@ const productDescriptionStyle = {
   flex: 2,
 };
 
-const reviewsContainerStyle = {
-  textAlign: "center",
-  margin: "0 auto",
-};
-
 const reviewItemStyle = {
   marginBottom: "15px",
   padding: "10px",
   border: "1px solid #ccc",
   borderRadius: "5px",
+  display: "flex",
+  justifyContent: "space-between",
+  width: "600px",
+  alignItems: "center",
+  background: "#f5f5f5",
+  boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+};
+
+const centeredContainerStyle = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "600px",
+  margin: "0 auto",
 };
 
 const ProductInfo = () => {
@@ -118,6 +129,7 @@ const ProductInfo = () => {
     fetchReviews();
 
     const fetchUserData = async () => {
+      console.log(auth.currentUser);
       try {
         if (auth.currentUser) {
           const userDocRef = doc(fs, "users", auth.currentUser.uid);
@@ -130,13 +142,7 @@ const ProductInfo = () => {
           }
         } else {
           // If user is not logged in, calculate totalProductsInCart from local storage
-          let totalProducts = 0;
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key !== "isLoggedIn") {
-              totalProducts++;
-            }
-          }
+
           setTotalProductsInCart(totalProducts);
         }
       } catch (error) {
@@ -282,7 +288,7 @@ const ProductInfo = () => {
       }
     } else {
       // Save the product ID in local storage
-      localStorage.setItem(productId, "true");
+      localStorage.setItem("product", JSON.stringify({id: productId, product}));
       toast.info("Product added to cart. Log in to save to your cart.", {
         position: "top-right",
         autoClose: 3000,
@@ -295,6 +301,7 @@ const ProductInfo = () => {
       history.push("/login");
     }
   };
+
   return (
     <>
       <div>
@@ -330,19 +337,40 @@ const ProductInfo = () => {
             <div>Product not found.</div>
           )}
         </div>
-        <div style={reviewsContainerStyle}>
-          <h1>Reviews</h1>
+        <div style={centeredContainerStyle}>
+          <h1 style={{ margin: "40px" }}>Reviews</h1>
           {reviews.length === 0 && <p>No reviews to show.</p>}
           {reviews.map((review, index) => (
             <div key={index} style={reviewItemStyle}>
-              <p>
-                <strong>{review.name}</strong>: {review.text}
-              </p>
+              <div>
+                <p style={{ marginBottom: "5px" }}>
+                  <strong>{review.name}</strong>
+                </p>
+                <p style={{ width: "450px" }}>{review.text}</p>
+              </div>
+              {auth.currentUser && (
+                <div style={{ width: "100px" }}>
+                  <Button variant="outlined" color="secondary">
+                    <DeleteIcon />
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
+
           {auth.currentUser && (
-            <form onSubmit={handleSubmitReview}>
+            <form
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                flexDirection: "column",
+                alignItems: "center",
+                marginBottom: "30px",
+              }}
+              onSubmit={handleSubmitReview}
+            >
               <TextField
+                style={{ width: "400px", margin: "20px" }}
                 label="Write a review"
                 variant="outlined"
                 multiline

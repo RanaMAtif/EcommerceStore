@@ -18,6 +18,8 @@ import logsigd from "../../Images/logsigd.png";
 import logsige from "../../Images/logsige.png";
 import logsigf from "../../Images/logsigf.png";
 import Power from "../../Images/Power.png";
+import { fs } from "../../Config/Config";
+import { collection, doc,setDoc } from "firebase/firestore";
 import {
   signInWithPopup,
   GoogleAuthProvider,
@@ -40,6 +42,7 @@ export const Login = () => {
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [currentImageUrl, setCurrentImageUrl] = useState(
     imageUrls[Math.floor(Math.random() * imageUrls.length)]
@@ -47,27 +50,52 @@ export const Login = () => {
   useEffect(() => {
     setCurrentImageUrl(imageUrls[Math.floor(Math.random() * imageUrls.length)]);
   }, []);
-  //Facebook log in
-  const handleFacebookSignUp = () => {
-    const provider = new FacebookAuthProvider();
 
-    signInWithPopup(auth, provider)
-      .then((result) => {
-        const user = result.user;
-        console.log("Facebook signup successful:", user);
+  const saveUserDataToFirestore = (firstName, lastName, email, uid) => {
+    const userData = {
+      FirstName: firstName,
+      LastName: lastName,
+      Email: email,
+      UID: uid,
+    };
+  
+    // Save user data in Firestore collection
+    const usersCollectionRef = collection(fs, "users"); // Replace 'db' with your Firestore instance
+    setDoc(doc(usersCollectionRef, uid), userData)
+      .then(() => {
+        // Redirect to the home page after successful login
+        window.location.href = "/home";
       })
       .catch((error) => {
         setErrorMsg(error.message);
       });
   };
-
-  //Google log in
-  const handleGoogleSignUp = () => {
+  //Facebook log in
+  const handleFacebookSignUp = () => {
+    const provider = new FacebookAuthProvider();
+  
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        const displayName = user.displayName;
+        const [firstName, lastName] = displayName.split(" ");
+        saveUserDataToFirestore(firstName, lastName, user.email, user.uid);
+      })
+      .catch((error) => {
+        setErrorMsg(error.message);
+      });
+  };
+  
+  const handleGoogleSignIn = () => {
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider)
       .then((result) => {
         const user = result.user;
-        console.log("Google signup successful:", user);
+        const displayName = user.displayName;
+        const [firstName, lastName] = displayName.split(" ");
+        const email = user.email;
+        const uid = user.uid;
+        saveUserDataToFirestore(firstName, lastName, email, uid);
       })
       .catch((error) => {
         setErrorMsg(error.message);
@@ -88,8 +116,8 @@ export const Login = () => {
 
       setTimeout(() => {
         setSuccessMsg("");
-        
-        window.location.href = "/"; 
+                
+        window.location.href = "/home";
       }, 3000);
     } catch (error) {
       const errorCode = error.code;
@@ -128,7 +156,7 @@ export const Login = () => {
       >
         <img
           src={currentImageUrl}
-          alt="Signup"
+          alt="Login"
           style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
         />
       </Box>
@@ -137,7 +165,15 @@ export const Login = () => {
         <img
           src={Power}
           alt="PowerLog"
-          style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+          style={{
+            maxWidth: "100%",
+            maxHeight: "100%",
+            objectFit: "contain",
+            marginLeft: "auto",
+            marginRight: "auto",
+            marginBottom: "30px",
+            display: "flex",
+          }}
         />
         <Typography component="h1" variant="h5" align="center">
           Log in
@@ -214,7 +250,7 @@ export const Login = () => {
                     Dont have an account? <a href="/signup">SignUp Here</a>
                   </Typography>
                   <Button
-                    onClick={handleGoogleSignUp}
+                    onClick={handleGoogleSignIn}
                     fullWidth
                     variant="contained"
                     color="warning"

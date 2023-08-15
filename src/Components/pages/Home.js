@@ -10,10 +10,11 @@ import {
   query,
   where,
   onSnapshot,
+  setDoc,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { IndividualFilteredProduct } from "../IndividualFilteredProduct";
-import Carousal from "../carousal/Carousal";
+
 import { Button } from "@mui/material";
 import { SideBar } from "../sideBar/SideBar";
 import { Footer } from "../footer/Footer";
@@ -34,82 +35,96 @@ export const Home = () => {
   const [noProductsFound, setNoProductsFound] = useState(false);
   const [products, setProducts] = useState([]);
   const [totalProductsInCart, setTotalProductsInCart] = useState(0);
+  const [user, setUser] = useState(null);
 
-  // ...
-
-  // Getting cart products
-  useEffect(() => {
+  // // Getting cart products
+  useEffect(async () => {
     const auth = getAuth();
     let sub = true;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    if (localStorage.length > 0) {
+      
+     const productData = JSON.parse(localStorage.getItem("product"))
+      setTotalProductsInCart(1);
       if (user) {
         const cartRef = collection(fs, "Carts", user.uid, "products");
 
-        // Cart snapshot listener cleanup function
+        const productRef = doc(cartRef, productData.id);
 
-        const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-          if (sub) {
-            const totalProducts = snapshot.docs.reduce(
-              (acc, doc) => acc + doc.data().qty,
-              0
-            );
-            setTotalProductsInCart(totalProducts);
-          }
-        });
-
-        return () => {
-          sub = false;
-          unsubscribeCart();
+        // If the product does not exist, add it to the cart with quantity and total product price
+        const productWithQtyAndTotalPrice = {
+          ...productData.product,
+          qty: 1,
+          TotalProductPrice: productData.product.price,
         };
+
+        await setDoc(productRef, productWithQtyAndTotalPrice);
+        localStorage.clear();
+      }
+    } else {
+      const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          const cartRef = collection(fs, "Carts", user.uid, "products");
+
+          // Cart snapshot listener cleanup function
+
+          const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
+            if (sub) {
+              const totalProducts = snapshot.docs.reduce(
+                (acc, doc) => acc + doc.data().qty,
+                0
+              );
+
+              setTotalProductsInCart(totalProducts);
+            }
+          });
+
+          return () => {
+            sub = false;
+            unsubscribeCart();
+          };
+        }
+        // Return a cleanup function for the auth listener
+        return () => {
+          unsubscribeAuth();
+        };
+      });
+    }
+  }, [user]);
+
+  // Getting current user
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      if (authUser) {
+        try {
+          const userDocRef = doc(fs, "users", authUser.uid);
+          const userDocSnapshot = await getDoc(userDocRef);
+
+          if (userDocSnapshot.exists()) {
+            const userData = userDocSnapshot.data();
+            setUser({
+              firstName: userData.FirstName,
+              email: authUser.email,
+              uid: authUser.uid,
+            });
+          } else {
+            console.log(
+              "User document does not exist or is missing required field"
+            );
+            setUser(null);
+          }
+        } catch (error) {
+          console.log("Error fetching user data:", error);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
     });
 
-    // Return a cleanup function for the auth listener
-    return () => {
-      unsubscribeAuth();
-    };
+    return () => unsubscribe();
   }, []);
-
-  // Getting current user
-  const GetCurrentUser = () => {
-    const [user, setUser] = useState(null);
-
-    useEffect(() => {
-      const auth = getAuth();
-      const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-        if (authUser) {
-          try {
-            const userDocRef = doc(fs, "users", authUser.uid);
-            const userDocSnapshot = await getDoc(userDocRef);
-
-            if (userDocSnapshot.exists()) {
-              const userData = userDocSnapshot.data();
-              setUser({
-                firstName: userData.FirstName,
-                email: authUser.email,
-              });
-            } else {
-              console.log(
-                "User document does not exist or is missing required field"
-              );
-              setUser(null);
-            }
-          } catch (error) {
-            console.log("Error fetching user data:", error);
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
-      });
-
-      return () => unsubscribe();
-    }, []);
-
-    return user;
-  };
-  const user = GetCurrentUser();
 
   // Getting products function
   const getProducts = useCallback(async () => {
@@ -224,7 +239,7 @@ export const Home = () => {
   };
 
   return (
-    <>
+    <div>
       <Navbar
         user={user}
         handleCategoryChange={handleCategoryChange}
@@ -241,7 +256,7 @@ export const Home = () => {
         />
       )}
       <br />
-      <div>{selectedCategory === "" && <Carousal />}</div>
+
       <div className="container-fluid filter-products-main-box">
         {noProductsFound ? (
           <div
@@ -258,12 +273,12 @@ export const Home = () => {
             </h1>
           </div>
         ) : (
-          <div className="my-products">
+          <div className="my-products" style={{ marginTop: "50px" }}>
             <h1 className="text-center">
               {selectedCategory !== "" ? selectedCategory : "All Products"}
             </h1>
             {selectedCategory !== "" && (
-              <Button onClick={() => handleCategoryChange("All")}>
+              <Button onClick={() => handleCategoryChange("")}>
                 Return to All Products
               </Button>
             )}
@@ -280,6 +295,6 @@ export const Home = () => {
         )}
       </div>
       <Footer style={footerStyle} />
-    </>
+    </div>
   );
 };

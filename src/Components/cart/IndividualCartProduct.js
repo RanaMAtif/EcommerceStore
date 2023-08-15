@@ -5,7 +5,7 @@ import { minus } from "react-icons-kit/feather/minus";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { getAuth } from "firebase/auth";
 import { doc, deleteDoc } from "firebase/firestore";
-import { fs } from "../../Config/Config"; 
+import { fs } from "../../Config/Config";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -20,7 +20,7 @@ export const IndividualCartProduct = ({
   };
 
   const handleCartProductDecrease = () => {
-    cartProductDecrease(cartProduct); 
+    cartProductDecrease(cartProduct);
   };
 
   const handleCartProductDelete = async (productId) => {
@@ -33,7 +33,7 @@ export const IndividualCartProduct = ({
         );
 
         await deleteDoc(cartProductRef);
-        onProductDeleteSuccess(productId); 
+        onProductDeleteSuccess(productId);
         toast.success("Cart product deleted successfully");
       }
     } catch (error) {
@@ -42,7 +42,16 @@ export const IndividualCartProduct = ({
   };
 
   return (
-    <div className="product">
+    <div
+      className="product"
+      style={{
+        display: "flex",
+        marginLeft: "auto",
+        marginRight: "auto",
+        justifyContent: "auto",
+        alignItems: "center",
+      }}
+    >
       <div className="product-img">
         <img src={cartProduct.imageUrl} alt="product-img" />
       </div>

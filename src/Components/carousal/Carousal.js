@@ -47,38 +47,52 @@ function Carousal() {
   };
 
   return (
-    <section
+    <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "20px",
-        marginBottom: "300px",
+        width : '100%',
+        height : 'auto',
+        display:'flex' ,
+        justifyContent:"center",
+        alignItems :"flex-start"
       }}
     >
-      <div style={{ maxWidth: "1000px", width: "100%", height: "300px" }}>
-        {images.length > 0 ? (
-          <AutoPlaySwipeableViews
-            index={activeStep}
-            onChangeIndex={handleStepChange}
-            enableMouseEvents
-          >
-            {images.map((image, index) => (
-              <div key={index}>
-                <img
-                  src={image.imgPath}
-                  alt=""
-                  style={{ width: "100%", height: "100%" }}
-                />
-              </div>
-            ))}
-          </AutoPlaySwipeableViews>
-        ) : (
-          <p>Loading</p>
-        )}
-      </div>
-    </section>
+      <section
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingTop: "20px",
+          width : '100%'
+        }}
+      >
+        <div 
+          style = {{  
+            width: "100%", 
+            height: "auto" 
+          }} >
+          {images.length > 0 ? (
+            <AutoPlaySwipeableViews
+              index={activeStep}
+              onChangeIndex={handleStepChange}
+              enableMouseEvents
+            >
+              {images.map((image, index) => (
+                <div key={index}>
+                  <img
+                    src={image.imgPath}
+                    alt=""
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                </div>
+              ))}
+            </AutoPlaySwipeableViews>
+          ) : (
+            <p>Loading</p>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AddProducts } from "./AddProducts";
 import HandleCarousal from "./HandleCarousal";
 import { Button, Modal, IconButton } from "@mui/material";
@@ -12,11 +12,12 @@ import { Tooltip } from "@mui/material";
 import { UpdateProducts } from "./UpdateProducts";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
-import Banner from "../Banner";
-import ProductOfMonth from "../ProductOfMonth";
-import FlashSale from "../FlashSale";
-import SideBanner from "../SideBanner";
-import Testimonial from "../Testimonial";
+import HandleBanner from "./HandleBanner";
+import HandlePOM from "./HandlePOM";
+import HandleSideBanner from "./HandleSideBanner";
+import { doc, getDoc, updateDoc,setDoc } from "firebase/firestore";
+import { fs } from "../../Config/Config";
+
 
 const AdminContainer = styled("div")({
   textAlign: "center",
@@ -77,19 +78,12 @@ const SideBannerButton = styled(ButtonStyled)({
   },
 });
 
-const FlashSaleButton = styled(ButtonStyled)({
-  backgroundColor: "#81C784", // Green for Flash Sale
-  "&:hover": {
-    backgroundColor: "#388E3C",
-  },
-});
-
-const TestimonialButton = styled(ButtonStyled)({
-  backgroundColor: "#90A4AE", // Gray for Testimonial Section
-  "&:hover": {
-    backgroundColor: "#607D8B",
-  },
-});
+// const FlashSaleButton = styled(ButtonStyled)({
+//   backgroundColor: "#81C784", // Green for Flash Sale
+//   "&:hover": {
+//     backgroundColor: "#388E3C",
+//   },
+// });
 
 const ModalContainer = styled("div")({
   display: "flex",
@@ -143,11 +137,80 @@ export default function AdminPanel() {
   const [isSideBannerEnabled, setIsSideBannerEnabled] = useState(true);
   const [isSideBannerModalOpen, setIsSideBannerModalOpen] = useState(false);
 
-  const [isFlashSaleEnabled, setIsFlashSaleEnabled] = useState(true);
-  const [isFlashSaleModalOpen, setIsFlashSaleModalOpen] = useState(false);
+  // const [isFlashSaleEnabled, setIsFlashSaleEnabled] = useState(true);
+  // const [isFlashSaleModalOpen, setIsFlashSaleModalOpen] = useState(false);
 
-  const [isTestimonialEnabled, setIsTestimonialEnabled] = useState(true);
-  const [isTestimonialModalOpen, setIsTestimonialModalOpen] = useState(false);
+  // Fetch the checkbox values from Firestore on component mount
+  useEffect(() => {
+    const settingsRef = doc(fs, "admin", "settings");
+
+    getDoc(settingsRef)
+      .then((docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data();
+          setIsCarousalEnabled(data.isCarousalEnabled);
+          setIsBannerEnabled(data.isBannerEnabled);
+          setIsPOMEnabled(data.isPOMEnabled);
+          setIsSideBannerEnabled(data.isSideBannerEnabled);
+          // setIsFlashSaleEnabled(data.isFlashSaleEnabled);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching settings:", error);
+      });
+  }, []);
+  // Update the checkbox values in Firestore when they are changed
+  useEffect(() => {
+    const settingsRef = doc(fs, "admin", "settings");
+
+    updateDoc(settingsRef, {
+      isCarousalEnabled,
+      isBannerEnabled,
+      isPOMEnabled,
+      isSideBannerEnabled,
+      // isFlashSaleEnabled,
+    }).catch((error) => {
+      console.error("Error updating settings:", error);
+    });
+  }, [
+    isCarousalEnabled,
+    isBannerEnabled,
+    isPOMEnabled,
+    isSideBannerEnabled,
+    // isFlashSaleEnabled,
+  ]);
+  //update checks value function
+  const updateCheckboxValueInFirestore = async (
+    checkboxName,
+    checkboxValue
+  ) => {
+    const settingsRef = doc(fs, "admin", "settings");
+
+    // Check if the document exists
+    const docSnapshot = await getDoc(settingsRef);
+    if (docSnapshot.exists()) {
+      // Update the existing document
+      try {
+        await updateDoc(settingsRef, {
+          [checkboxName]: checkboxValue,
+        });
+        console.log(`${checkboxName} value updated successfully!`);
+      } catch (error) {
+        console.error(`Error updating ${checkboxName} value:`, error);
+      }
+    } else {
+      // Create the document with default values
+      try {
+        await setDoc(settingsRef, {
+          [checkboxName]: checkboxValue,
+        
+        });
+        console.log(`${checkboxName} value set successfully!`);
+      } catch (error) {
+        console.error(`Error creating ${checkboxName} document:`, error);
+      }
+    }
+  };
 
   const handleOpenProductModal = () => {
     setIsProductModalOpen(true);
@@ -188,11 +251,15 @@ export default function AdminPanel() {
   };
 
   const handleCarousalCheckboxChange = (event) => {
-    setIsCarousalEnabled(event.target.checked);
+    const newValue = event.target.checked;
+    setIsCarousalEnabled(newValue);
+    updateCheckboxValueInFirestore("isCarousalEnabled", newValue);
   };
 
   const handleBannerCheckboxChange = (event) => {
-    setIsBannerEnabled(event.target.checked);
+    const newValue = event.target.checked;
+    setIsBannerEnabled(newValue);
+    updateCheckboxValueInFirestore("isBannerEnabled", newValue);
   };
   const handleOpenBannerModal = () => {
     setIsBannerModalOpen(true);
@@ -202,7 +269,9 @@ export default function AdminPanel() {
   };
 
   const handlePOMCheckboxChange = (event) => {
-    setIsPOMEnabled(event.target.checked);
+    const newValue = event.target.checked;
+    setIsPOMEnabled(newValue);
+    updateCheckboxValueInFirestore("isPOMEnabled", newValue);
   };
   const handleOpenPOMModal = () => {
     setIsPOMModalOpen(true);
@@ -212,7 +281,9 @@ export default function AdminPanel() {
   };
 
   const handleSideBannerCheckboxChange = (event) => {
-    setIsSideBannerEnabled(event.target.checked);
+    const newValue = event.target.checked;
+    setIsSideBannerEnabled(newValue);
+    updateCheckboxValueInFirestore("isSideBannerEnabled", newValue);
   };
   const handleOpenSideBannerModal = () => {
     setIsSideBannerModalOpen(true);
@@ -221,25 +292,17 @@ export default function AdminPanel() {
     setIsSideBannerModalOpen(false);
   };
 
-  const handleFlashSaleCheckboxChange = (event) => {
-    setIsFlashSaleEnabled(event.target.checked);
-  };
-  const handleOpenFlashSaleModal = () => {
-    setIsFlashSaleModalOpen(true);
-  };
-  const handleCloseFlashSaleModal = () => {
-    setIsFlashSaleModalOpen(false);
-  };
-
-  const handleTestimonialCheckboxChange = (event) => {
-    setIsTestimonialEnabled(event.target.checked);
-  };
-  const handleOpenTestimonialModal = () => {
-    setIsTestimonialModalOpen(true);
-  };
-  const handleCloseTestimonialModal = () => {
-    setIsTestimonialModalOpen(false);
-  };
+  // const handleFlashSaleCheckboxChange = (event) => {
+  //   const newValue = event.target.checked;
+  //   setIsFlashSaleEnabled(newValue);
+  //   updateCheckboxValueInFirestore("isFlashSaleEnabled", newValue);
+  // };
+  // const handleOpenFlashSaleModal = () => {
+  //   setIsFlashSaleModalOpen(true);
+  // };
+  // const handleCloseFlashSaleModal = () => {
+  //   setIsFlashSaleModalOpen(false);
+  // };
 
   return (
     <>
@@ -252,6 +315,8 @@ export default function AdminPanel() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          marginTop: "30px",
+          borderBottom: "5px solid #648ccd",
         }}
       >
         <h1>Admin Panel</h1>
@@ -259,17 +324,43 @@ export default function AdminPanel() {
 
       <AdminContainer>
         <ButtonContainer>
-          <div>
-            <ProductButton variant="contained" onClick={handleOpenProductModal}>
+          <div
+            style={{
+              width: "80%",
+              height: "70px",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <ProductButton
+              style={{ width: "75%", height: "40px" }}
+              variant="contained"
+              onClick={handleOpenProductModal}
+            >
               Product Settings
             </ProductButton>
           </div>
-          <div>
+
+          <div
+            style={{
+              width: "60%",
+              height: "auto",
+              padding: "10px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              border: "1px solid #4CAF50",
+              borderRadius: "5px",
+            }}
+          >
             <CarousalButton
               variant="contained"
               onClick={handleOpenCarousalModal}
               disabled={!isCarousalEnabled}
               style={{
+                width: "50%",
+                height: "40px",
                 backgroundColor: isCarousalEnabled ? "#4CAF50" : "#999",
                 "&:hover": {
                   backgroundColor: isCarousalEnabled ? "#45a049" : "#999",
@@ -280,7 +371,6 @@ export default function AdminPanel() {
             </CarousalButton>
 
             <FormControlLabel
-              style={{ marginLeft: "50px" }}
               control={
                 <Checkbox
                   checked={isCarousalEnabled}
@@ -291,12 +381,26 @@ export default function AdminPanel() {
               label="Enable Carousal"
             />
           </div>
-          <div>
+
+          <div
+            style={{
+              width: "60%",
+              height: "auto",
+              padding: "10px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              border: "1px solid #FFC107",
+              borderRadius: "5px",
+            }}
+          >
             <BannerButton
               variant="contained"
               onClick={handleOpenBannerModal}
               disabled={!isBannerEnabled}
               style={{
+                width: "50%",
+                height: "40px",
                 backgroundColor: isBannerEnabled ? "#FFC107" : "#999",
                 "&:hover": {
                   backgroundColor: isBannerEnabled ? "#FFA000" : "#999",
@@ -307,7 +411,6 @@ export default function AdminPanel() {
             </BannerButton>
 
             <FormControlLabel
-              style={{ marginLeft: "50px" }}
               control={
                 <Checkbox
                   checked={isBannerEnabled}
@@ -318,8 +421,21 @@ export default function AdminPanel() {
               label="Enable Banner"
             />
           </div>
-          <div>
+
+          <div
+            style={{
+              width: "60%",
+              height: "auto",
+              padding: "10px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              border: "1px solid #E57373",
+              borderRadius: "5px",
+            }}
+          >
             <POMButton
+              style={{ width: "50%", height: "40px" }}
               variant="contained"
               onClick={handleOpenPOMModal}
               disabled={!isPOMEnabled}
@@ -327,7 +443,6 @@ export default function AdminPanel() {
               Product of the Month Settings
             </POMButton>
             <FormControlLabel
-              style={{ marginLeft: "50px" }}
               control={
                 <Checkbox
                   checked={isPOMEnabled}
@@ -338,8 +453,21 @@ export default function AdminPanel() {
               label="Enable Product of the Month"
             />
           </div>
-          <div>
+
+          <div
+            style={{
+              width: "60%",
+              height: "auto",
+              padding: "10px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              border: "1px solid #9FA8DA",
+              borderRadius: "5px",
+            }}
+          >
             <SideBannerButton
+              style={{ width: "50%", height: "40px" }}
               variant="contained"
               onClick={handleOpenSideBannerModal}
               disabled={!isSideBannerEnabled}
@@ -347,7 +475,6 @@ export default function AdminPanel() {
               Side Banner Settings
             </SideBannerButton>
             <FormControlLabel
-              style={{ marginLeft: "50px" }}
               control={
                 <Checkbox
                   checked={isSideBannerEnabled}
@@ -358,8 +485,21 @@ export default function AdminPanel() {
               label="Enable SideBanner"
             />
           </div>
-          <div>
+
+          {/* <div
+            style={{
+              width: "60%",
+              height: "auto",
+              padding: "10px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              border: "1px solid #81C784",
+              borderRadius: "5px",
+            }}
+          >
             <FlashSaleButton
+              style={{ width: "50%", height: "40px" }}
               variant="contained"
               onClick={handleOpenFlashSaleModal}
               disabled={!isFlashSaleEnabled}
@@ -367,7 +507,6 @@ export default function AdminPanel() {
               Flash Sale Settings
             </FlashSaleButton>
             <FormControlLabel
-              style={{ marginLeft: "50px" }}
               control={
                 <Checkbox
                   checked={isFlashSaleEnabled}
@@ -377,27 +516,7 @@ export default function AdminPanel() {
               }
               label="Enable Flash Sale"
             />
-          </div>
-          <div>
-            <TestimonialButton
-              variant="contained"
-              onClick={handleOpenTestimonialModal}
-              disabled={!isTestimonialEnabled}
-            >
-              Testimonial Section Settings
-            </TestimonialButton>
-            <FormControlLabel
-              style={{ marginLeft: "50px" }}
-              control={
-                <Checkbox
-                  checked={isTestimonialEnabled}
-                  size="large"
-                  onChange={handleTestimonialCheckboxChange}
-                />
-              }
-              label="Enable Testimonial Section"
-            />
-          </div>
+          </div> */}
         </ButtonContainer>
 
         <Modal open={isProductModalOpen} onClose={handleCloseProductModal}>
@@ -532,7 +651,7 @@ export default function AdminPanel() {
                 <CloseIcon />
               </CloseButton>
 
-              <Banner />
+              <HandleBanner />
             </ModalContent>
           </ModalContainer>
         </Modal>
@@ -546,7 +665,7 @@ export default function AdminPanel() {
               >
                 <CloseIcon />
               </CloseButton>
-              <ProductOfMonth />
+              <HandlePOM /> 
             </ModalContent>
           </ModalContainer>
         </Modal>
@@ -563,11 +682,11 @@ export default function AdminPanel() {
               >
                 <CloseIcon />
               </CloseButton>
-              <SideBanner />
+              <HandleSideBanner />
             </ModalContent>
           </ModalContainer>
         </Modal>
-        <Modal open={isFlashSaleModalOpen} onClose={handleCloseFlashSaleModal}>
+        {/* <Modal open={isFlashSaleModalOpen} onClose={handleCloseFlashSaleModal}>
           <ModalContainer>
             <ModalContent>
               <CloseButton
@@ -577,29 +696,10 @@ export default function AdminPanel() {
               >
                 <CloseIcon />
               </CloseButton>
-              {/* Render your FlashSale component here */}
               <FlashSale />
             </ModalContent>
           </ModalContainer>
-        </Modal>
-        <Modal
-          open={isTestimonialModalOpen}
-          onClose={handleCloseTestimonialModal}
-        >
-          <ModalContainer>
-            <ModalContent>
-              <CloseButton
-                color="inherit"
-                onClick={handleCloseTestimonialModal}
-                size="small"
-              >
-                <CloseIcon />
-              </CloseButton>
-              {/* Render your Testimonial component here */}
-              <Testimonial />
-            </ModalContent>
-          </ModalContainer>
-        </Modal>
+        </Modal> */}
       </AdminContainer>
     </>
   );

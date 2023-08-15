@@ -7,11 +7,13 @@ import { Cart } from "./Components/cart/Cart";
 import AdminPanel from "./Components/admin/AdminPanel";
 import { SideBar } from "./Components/sideBar/SideBar";
 import ProductInfo from "./Components/product/ProductInfo";
+import LandingPage from "./Components/LandingPage";
 export const App = () => {
   return (
     <BrowserRouter>
       <Switch>
-        <Route exact path="/" component={Home} />
+      <Route exact path="/" component={LandingPage} />
+        <Route exact path="/home" component={Home} />
         <Route path="/signup" component={Signup} />
         <Route path="/login" component={Login} />
         <Route path="/side" component={SideBar} />

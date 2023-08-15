@@ -29,10 +29,31 @@ export const SearchProduct = () => {
   const handleSearchTermChange = (e) => {
     setSearchTerm(e.target.value);
   };
+
   // Filter products based on the search term
   const filteredProducts = products.filter((product) =>
     product.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const searchResultsStyle = {
+    position: "absolute",
+    top: "100px", // Adjust this value to match your search input height
+    left: "50",
+    width: "400px", // Equal to the input width
+    backgroundColor: "white",
+    zIndex: "9999",
+    padding: "30px",
+    boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.2)",
+  };
+
+  const searchResultItemStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "10px",
+    fontWeight: "bold",
+    textDecoration: "none",
+  };
 
   return (
     <div className="container">
@@ -43,36 +64,30 @@ export const SearchProduct = () => {
           placeholder="Search Products"
           value={searchTerm}
           onChange={handleSearchTermChange}
+          style={{ width: "400px" }}
         />
       </div>
 
       {searchTerm.trim() !== "" && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            flexDirection: "column",
-            alignItems: "center",
-            marginTop: "20px",
-          }}
-        >
-          {filteredProducts.length === 0 ? (
-            <div>No products found.</div>
-          ) : (
-            filteredProducts.map((product) => (
-              <Link to={`/product/${product.id}`} key={product.id} className="product">
-                <div className="product-img">
-                  <img src={product.imageUrl} alt="product-img" />
-                </div>
-                <div className="product-text title">{product.title}</div>
-                <div className="product-text description">
-                  {product.description}
-                </div>
-                <div style={{ fontWeight: "bold" }}>{product.brand}</div>
-                <div className="product-text price">$ {product.price}</div>
-              </Link>
-            ))
-          )}
+        <div style={searchResultsStyle}>
+          <div className="search-results-content">
+            {filteredProducts.length === 0 ? (
+              <div>No products found.</div>
+            ) : (
+              <div>
+                {filteredProducts.map((product) => (
+                  <Link
+                    to={`/product/${product.id}`}
+                    key={product.id}
+                    style={searchResultItemStyle}
+                  >
+                    <div>{product.brand}</div>
+                    <div>${product.price}</div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
