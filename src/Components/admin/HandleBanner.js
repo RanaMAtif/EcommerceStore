@@ -1,7 +1,18 @@
-import React, { useState } from "react";
-import { storage, fs } from "../../Config/Config"; // Import your storage and firestore instances
-import { uploadBytes, getDownloadURL, ref } from "firebase/storage";
-import { addDoc, collection } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import { storage, fs } from "../../Config/Config";
+import {
+  uploadBytes,
+  getDownloadURL,
+  ref,
+  deleteObject,
+} from "firebase/storage";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  deleteDoc,
+  query,
+} from "firebase/firestore";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -17,22 +28,47 @@ import "react-toastify/dist/ReactToastify.css";
 export default function HandleBanner() {
   const [selectedFile, setSelectedFile] = useState(null);
 
+  useEffect(() => {
+    fetchBanner();
+  }, []);
+
+  const fetchBanner = async () => {
+    try {
+      const bannerCollectionRef = collection(fs, "banner");
+      const bannerQuery = query(bannerCollectionRef);
+      const bannerQuerySnapshot = await getDocs(bannerQuery);
+
+      if (!bannerQuerySnapshot.empty) {
+        bannerQuerySnapshot.forEach(async (doc) => {
+          const oldImageUrl = doc.data().imageUrl;
+          const oldStorageRef = ref(storage, oldImageUrl);
+          await deleteObject(oldStorageRef);
+          await deleteDoc(doc.ref);
+          console.log("Old image deleted from Storage and Firestore");
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching banner data: ", error);
+    }
+  };
+
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
   };
 
   const handleUpload = async () => {
     if (selectedFile) {
-      const storageRef = ref(storage, "banner-images/banner-image"); // Use the same path as in Banner Component
+      // Upload new image
+      const storageRef = ref(storage, "banner-images/banner-image");
       await uploadBytes(storageRef, selectedFile);
 
       const imageURL = await getDownloadURL(storageRef);
 
-      // Save the image URL in Firestore
+      // Save the new image URL in Firestore
       try {
         const bannerCollectionRef = collection(fs, "banner");
         await addDoc(bannerCollectionRef, { imageUrl: imageURL });
-        console.log("Image URL saved in Firestore");
+        console.log("New image URL saved in Firestore");
 
         // Show success toast
         toast.success("Banner Successfully updated", {
@@ -47,7 +83,7 @@ export default function HandleBanner() {
         // Reset fields
         setSelectedFile(null);
       } catch (error) {
-        console.error("Error saving image URL in Firestore: ", error);
+        console.error("Error saving new image URL in Firestore: ", error);
       }
     }
   };

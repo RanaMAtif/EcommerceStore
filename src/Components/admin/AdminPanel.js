@@ -15,9 +15,8 @@ import Checkbox from "@mui/material/Checkbox";
 import HandleBanner from "./HandleBanner";
 import HandlePOM from "./HandlePOM";
 import HandleSideBanner from "./HandleSideBanner";
-import { doc, getDoc, updateDoc,setDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { fs } from "../../Config/Config";
-
 
 const AdminContainer = styled("div")({
   textAlign: "center",
@@ -126,15 +125,15 @@ export default function AdminPanel() {
     useState(false);
   const [isUpdateProductModalOpen, setIsUpdateProductModalOpen] =
     useState(false);
-  const [isCarousalEnabled, setIsCarousalEnabled] = useState(true);
+  const [isCarousalEnabled, setIsCarousalEnabled] = useState(false);
 
-  const [isBannerEnabled, setIsBannerEnabled] = useState(true);
+  const [isBannerEnabled, setIsBannerEnabled] = useState(false);
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
 
-  const [isPOMEnabled, setIsPOMEnabled] = useState(true);
+  const [isPOMEnabled, setIsPOMEnabled] = useState(false);
   const [isPOMModalOpen, setIsPOMModalOpen] = useState(false);
 
-  const [isSideBannerEnabled, setIsSideBannerEnabled] = useState(true);
+  const [isSideBannerEnabled, setIsSideBannerEnabled] = useState(false);
   const [isSideBannerModalOpen, setIsSideBannerModalOpen] = useState(false);
 
   // const [isFlashSaleEnabled, setIsFlashSaleEnabled] = useState(true);
@@ -159,26 +158,6 @@ export default function AdminPanel() {
         console.error("Error fetching settings:", error);
       });
   }, []);
-  // Update the checkbox values in Firestore when they are changed
-  useEffect(() => {
-    const settingsRef = doc(fs, "admin", "settings");
-
-    updateDoc(settingsRef, {
-      isCarousalEnabled,
-      isBannerEnabled,
-      isPOMEnabled,
-      isSideBannerEnabled,
-      // isFlashSaleEnabled,
-    }).catch((error) => {
-      console.error("Error updating settings:", error);
-    });
-  }, [
-    isCarousalEnabled,
-    isBannerEnabled,
-    isPOMEnabled,
-    isSideBannerEnabled,
-    // isFlashSaleEnabled,
-  ]);
   //update checks value function
   const updateCheckboxValueInFirestore = async (
     checkboxName,
@@ -203,7 +182,6 @@ export default function AdminPanel() {
       try {
         await setDoc(settingsRef, {
           [checkboxName]: checkboxValue,
-        
         });
         console.log(`${checkboxName} value set successfully!`);
       } catch (error) {
@@ -665,7 +643,7 @@ export default function AdminPanel() {
               >
                 <CloseIcon />
               </CloseButton>
-              <HandlePOM /> 
+              <HandlePOM />
             </ModalContent>
           </ModalContainer>
         </Modal>

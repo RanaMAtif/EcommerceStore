@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { fs } from "../Config/Config";
+import { fs } from "../../Config/Config";
 import { getDocs, collection } from "firebase/firestore";
 
 export default function SideBanner() {
@@ -24,17 +24,18 @@ export default function SideBanner() {
     fetchSideBannerImage();
   }, []);
 
-  const bannerStyles = {
-    position: "relative",
-    width: "100%",
-    height: "100%",
+  const bannerStyles = { 
+    top: 0, // Align to the top
+    right: 0, // Align to the right
+    width: "200px", // Set a specific width for the banner
+    height: "100%", // Take full height
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.2)", // Adding a subtle shadow
-    borderRadius: "10px", // Adding rounded corners
+    boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.2)",
+    borderRadius: "10px",
     overflow: "hidden",
-    backgroundColor: "#f0f0f0", // Adding a background color
+    backgroundColor: "#f0f0f0",
   };
 
   const imageStyles = {
@@ -45,7 +46,9 @@ export default function SideBanner() {
 
   return (
     <div style={bannerStyles}>
-      {sideBannerImage && <img style={imageStyles} src={sideBannerImage} alt="sideBanner" />}
+      {sideBannerImage && (
+        <img style={imageStyles} src={sideBannerImage} alt="sideBanner" />
+      )}
     </div>
   );
 }

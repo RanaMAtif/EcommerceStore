@@ -42,15 +42,21 @@ const FilterNav = (props) => {
   };
 
   return (
-    <BottomNavigation showLabels onChange={handleChange}>
-      <BottomNavigationAction label="Men" icon={<ManIcon />} />
-      <BottomNavigationAction label="Women" icon={<WomanIcon />} />
-      <BottomNavigationAction label="Electronics" icon={<ElectricBoltIcon />} />
-      <BottomNavigationAction label="Sports" icon={<SportsIcon />} />
-      <BottomNavigationAction label="Fitness" icon={<FitnessCenterIcon />} />
-      <BottomNavigationAction label="Tools" icon={<HardwareIcon />} />
-      <BottomNavigationAction label="Groceries" icon={<ShoppingBagIcon />} />
-    </BottomNavigation>
+    <div style={{ textAlign: "center" }}>
+      <h1>Categories</h1>
+      <BottomNavigation showLabels onChange={handleChange}>
+        <BottomNavigationAction label="Men" icon={<ManIcon />} />
+        <BottomNavigationAction label="Women" icon={<WomanIcon />} />
+        <BottomNavigationAction
+          label="Electronics"
+          icon={<ElectricBoltIcon />}
+        />
+        <BottomNavigationAction label="Sports" icon={<SportsIcon />} />
+        <BottomNavigationAction label="Fitness" icon={<FitnessCenterIcon />} />
+        <BottomNavigationAction label="Tools" icon={<HardwareIcon />} />
+        <BottomNavigationAction label="Groceries" icon={<ShoppingBagIcon />} />
+      </BottomNavigation>
+    </div>
   );
 };
 

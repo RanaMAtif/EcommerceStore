@@ -4,11 +4,12 @@ import {
   collection,
   getDocs,
   onSnapshot,
+  getDoc,
   doc,
   updateDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth,onAuthStateChanged } from "firebase/auth";
 import { Navbar } from "../navigationBar/Navbar";
 import { CartProducts } from "./CartProducts";
 import StripeCheckout from "react-stripe-checkout";
@@ -21,10 +22,12 @@ import { Modal } from "./Modal";
 toast.configure();
 
 export const Cart = () => {
-  // show modal state
+  
   const [showModal, setShowModal] = useState(false);
   const isMounted = useRef(true);
   const [user, setUser] = useState(null);
+  const [totalProductsInCart, setTotalProductsInCart] = useState(0);
+  const [clicked,setClicked]=useState(false)
   // trigger modal
   const triggerModal = () => {
     setShowModal(true);
@@ -34,38 +37,77 @@ export const Cart = () => {
   const hideModal = () => {
     setShowModal(false);
   };
+//fetch user data
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      if (authUser) {
+        try {
+          const userDocRef = doc(fs, "users", authUser.uid);
+          const userDocSnapshot = await getDoc(userDocRef);
+
+          if (userDocSnapshot.exists()) {
+            const userData = userDocSnapshot.data();
+            setUser({
+              firstName: userData.FirstName,
+              email: authUser.email,
+              uid: authUser.uid,
+            });
+          } else {
+            console.log(
+              "User document does not exist or is missing required field"
+            );
+            setUser(null);
+          }
+        } catch (error) {
+          console.log("Error fetching user data:", error);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // state of cart products
   const [cartProducts, setCartProducts] = useState([]);
   // Calculate the total quantity of products in the cart
-  const totalProductsInCart = cartProducts.reduce(
-    (accumulator, cartProduct) => accumulator + cartProduct.qty,
-    0
-  );
+  const calculateTotalProductsInCart = async () => {
+    if (user) {
+      try {
+        const cartRef = collection(fs, "Carts", user.uid, "products");
+        const cartSnapshot = await getDocs(cartRef);
+
+        // Count unique product IDs
+        const uniqueProductIds = new Set();
+        cartSnapshot.forEach((doc) => {
+          uniqueProductIds.add(doc.id);
+        });
+
+        setTotalProductsInCart(uniqueProductIds.size);
+      } catch (error) {
+        console.error("Error calculating total products in cart:", error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    calculateTotalProductsInCart();
+  }, [user,clicked]);
 
   // getting cart products from firestore collection and updating the state
   // Loading state to indicate data fetching
   const [loading, setLoading] = useState(true);
-
-
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-    });
+    
 
-    return () => unsubscribe(); // Cleanup when unmounting
-  }, []);
-
-  useEffect(() => {
     if (user) {
-      console.log("user", user);
-    const auth = getAuth();
-    if (auth.currentUser) {
       const cartCollectionRef = collection(
         fs,
         "Carts",
-        auth.currentUser.uid,
+        user.uid,
         "products"
       );
       const unsubscribe = onSnapshot(
@@ -91,7 +133,7 @@ export const Cart = () => {
     } else {
       setLoading(false); // Set loading to false if user is not authenticated
     }}
-  }, [user]);
+, [user]);
 
   // Calculate the total quantity and total price of products in the cart
   const totalQuantity = cartProducts.reduce(
@@ -115,7 +157,6 @@ export const Cart = () => {
     const auth = getAuth();
 
     // updating in database
-    const user = auth.currentUser;
     if (user) {
       updateDoc(doc(fs, "Carts", user.uid, "products", cartProduct.ID), Product)
         .then(() => {
@@ -136,11 +177,11 @@ export const Cart = () => {
       Product.qty = Product.qty - 1;
       Product.TotalProductPrice = Product.qty * Product.price;
 
-      // initializing Firebase
-      const auth = getAuth();
+
+
 
       // updating in database
-      const user = auth.currentUser;
+     
       if (user) {
         updateDoc(
           doc(fs, "Carts", user.uid, "products", cartProduct.ID),
@@ -206,22 +247,28 @@ export const Cart = () => {
       console.error("Error processing payment: ", error);
     }
   };
+
+
   const handleProductDelete = async (productId) => {
+    setClicked(true)
     try {
-      const auth = getAuth();
-      if (auth.currentUser) {
+      
+      if (user,clicked) {
         // Reference to the cart document
-        const cartRef = doc(fs, `Carts/${auth.currentUser.uid}`);
+        const cartRef = doc(fs, `Carts/${user.uid}`);
 
         // Reference to the specific product document within the cart
         const productRef = doc(cartRef, "products", productId);
 
         // Delete the product document
         await deleteDoc(productRef);
+        
       }
     } catch (error) {
       console.error("Error deleting product from cart: ", error);
+      setClicked(false)
     }
+    setClicked(false)
   };
   return (
     <>

@@ -13,11 +13,31 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { IndividualFilteredProduct } from "../IndividualFilteredProduct";
-
+import { IndividualFilteredProduct } from "../product/IndividualFilteredProduct";
 import { Button } from "@mui/material";
 import { SideBar } from "../sideBar/SideBar";
 import { Footer } from "../footer/Footer";
+import Carousal from "./Carousal";
+import Banner from "./Banner";
+import ProductOfMonth from "./ProductOfMonth";
+import SideBanner from "./SideBanner";
+
+
+const contentContainerStyles = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexDirection: "row", // Horizontal alignment
+  marginTop: "20px", // Add space between Carousal and content
+};
+
+const productOfMonthStyles = {
+  marginRight: "250px", // Add margin between components
+};
+
+const sideBannerStyles = {
+  marginLeft: "250px", // Add margin between components
+};
 
 const footerStyle = {
   position: "fixed",
@@ -36,14 +56,62 @@ export const Home = () => {
   const [products, setProducts] = useState([]);
   const [totalProductsInCart, setTotalProductsInCart] = useState(0);
   const [user, setUser] = useState(null);
+  const [showCarousal, setShowCarousal] = useState(true);
+  const [showBanner, setShowBanner] = useState(true);
+  const [showPOM, setShowPOME] = useState(true);
+  const [showSideBanner, setShowSideBanner] = useState(true);
+
+  //admin choices
+  useEffect(() => {
+    const settingsRef = doc(fs, "admin", "settings");
+
+    getDoc(settingsRef)
+      .then((docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data();
+          setShowCarousal(data.isCarousalEnabled);
+          setShowBanner(data.isBannerEnabled);
+          setShowPOME(data.isPOMEnabled);
+          setShowSideBanner(data.isSideBannerEnabled);
+          // setIsFlashSaleEnabled(data.isFlashSaleEnabled);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching settings:", error);
+      });
+  }, []);
+
+  //products in cart
+
+  const calculateTotalProductsInCart = async () => {
+    if (user) {
+      try {
+        const cartRef = collection(fs, "Carts", user.uid, "products");
+        const cartSnapshot = await getDocs(cartRef);
+
+        // Count unique product IDs
+        const uniqueProductIds = new Set();
+        cartSnapshot.forEach((doc) => {
+          uniqueProductIds.add(doc.id);
+        });
+
+        setTotalProductsInCart(uniqueProductIds.size);
+      } catch (error) {
+        console.error("Error calculating total products in cart:", error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    calculateTotalProductsInCart();
+  }, [user]);
 
   // // Getting cart products
   useEffect(async () => {
     const auth = getAuth();
     let sub = true;
     if (localStorage.length > 0) {
-      
-     const productData = JSON.parse(localStorage.getItem("product"))
+      const productData = JSON.parse(localStorage.getItem("product"));
       setTotalProductsInCart(1);
       if (user) {
         const cartRef = collection(fs, "Carts", user.uid, "products");
@@ -73,8 +141,6 @@ export const Home = () => {
                 (acc, doc) => acc + doc.data().qty,
                 0
               );
-
-              setTotalProductsInCart(totalProducts);
             }
           });
 
@@ -256,7 +322,16 @@ export const Home = () => {
         />
       )}
       <br />
-
+      {showCarousal && selectedCategory == "" && <Carousal />}
+      <div style={contentContainerStyles}>
+        <div style={productOfMonthStyles}>
+          {showPOM && selectedCategory == "" && <ProductOfMonth onClickProductDetails={handleProductClick}/>}
+        </div>
+        <div style={sideBannerStyles}>
+          {showSideBanner && selectedCategory == "" && <SideBanner />}
+        </div>
+      </div>
+      {showBanner && selectedCategory == "" && <Banner />}
       <div className="container-fluid filter-products-main-box">
         {noProductsFound ? (
           <div

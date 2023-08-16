@@ -1,8 +1,62 @@
 import React, { useState, useEffect } from "react";
-import { fs } from "../Config/Config"; // Import your firestore instance
+import { fs } from "../../Config/Config"; // Import your firestore instance
 import { collection, doc, getDoc, query, getDocs } from "firebase/firestore";
 
-export default function ProductOfMonth() {
+const CardStyles = {
+  left: "20px",
+  bottom: "20px",
+  width: "200px",
+  border: "1px solid #f0f0f0",
+  borderRadius: "5px",
+  boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.1)",
+  backgroundColor: "#ffeead",
+  padding: "10px",
+  zIndex: 2,
+  color: "#333",
+  textAlign: "center", // Center align the content
+};
+
+const titleStyles = {
+  fontSize: "18px",
+  marginBottom: "10px",
+  color: "#555",
+  fontWeight: "bold", // Set font weight to bold
+};
+
+const productContainerStyles = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+};
+
+const productNameStyles = {
+  fontSize: "16px",
+  marginTop: "10px",
+  color: "#333",
+  fontWeight: "bold", // Set font weight to bold
+};
+
+const imageStyles = {
+  width: "100%",
+  maxWidth: "150px",
+  marginTop: "10px",
+  borderRadius: "3px",
+  cursor: "pointer",
+};
+
+const descriptionStyles = {
+  marginTop: "10px",
+  fontSize: "14px",
+  color: "#777",
+  fontWeight: "bold", // Set font weight to bold
+};
+
+const priceStyles = {
+  fontWeight: "bold",
+  marginTop: "10px",
+  color: "#ff5722",
+};
+export default function ProductOfMonth({ onClickProductDetails }) {
   const [productId, setProductId] = useState("");
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -58,18 +112,19 @@ export default function ProductOfMonth() {
   }
 
   return (
-    <div>
-      <h2>Product of the Month</h2>
+    <div style={CardStyles}>
+      <h2 style={titleStyles}>Product of the Month</h2>
       {product ? (
-        <div>
-          <h3>{product.name}</h3>
+        <div style={productContainerStyles}>
+          <h3 style={productNameStyles}>{product.name}</h3>
           <img
             src={product.imageUrl}
             alt={product.name}
-            style={{ maxWidth: "100%" }}
+            style={imageStyles}
+            onClick={() => onClickProductDetails(productId)}
           />
-          <p>Description: {product.description}</p>
-          <p>Price: ${product.price}</p>
+          <p style={descriptionStyles}>{product.description}</p>
+          <p style={priceStyles}>Price: ${product.price}</p>
         </div>
       ) : (
         <p>No product available for this month.</p>

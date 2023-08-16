@@ -8,6 +8,7 @@ import {
   getDocs,
   addDoc,
   onSnapshot,
+  deleteDoc,
 } from "firebase/firestore";
 import { fs, auth } from "../../Config/Config";
 import { Navbar } from "../navigationBar/Navbar";
@@ -76,9 +77,43 @@ const ProductInfo = () => {
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [reviewText, setReviewText] = useState("");
-  const [userEmail, setUserEmail] = useState("");
-  const [userFirstName, setUserFirstName] = useState("");
   const [totalProductsInCart, setTotalProductsInCart] = useState(0);
+  const [user, setUser] = useState(null);
+  const [clicked, setClicked] = useState(false);
+
+  ////userdata
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      if (authUser) {
+        try {
+          const userDocRef = doc(fs, "users", authUser.uid);
+          const userDocSnapshot = await getDoc(userDocRef);
+
+          if (userDocSnapshot.exists()) {
+            const userData = userDocSnapshot.data();
+            setUser({
+              firstName: userData.FirstName,
+              email: authUser.email,
+              uid: authUser.uid,
+            });
+          } else {
+            console.log(
+              "User document does not exist or is missing required field"
+            );
+            setUser(null);
+          }
+        } catch (error) {
+          console.log("Error fetching user data:", error);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const fetchReviews = async () => {
     try {
@@ -89,7 +124,7 @@ const ProductInfo = () => {
       if (!reviewsQuerySnapshot.empty) {
         const reviewList = [];
         reviewsQuerySnapshot.forEach((doc) => {
-          const reviewData = doc.data();
+          const reviewData = { id: doc.id, ...doc.data() }; // Include the review ID
           reviewList.push(reviewData);
         });
         setReviews(reviewList);
@@ -125,35 +160,11 @@ const ProductInfo = () => {
     fetchProduct();
   }, [productId]);
 
-  useEffect(() => {
-    fetchReviews();
-
-    const fetchUserData = async () => {
-      console.log(auth.currentUser);
-      try {
-        if (auth.currentUser) {
-          const userDocRef = doc(fs, "users", auth.currentUser.uid);
-          const userDocSnapshot = await getDoc(userDocRef);
-
-          if (userDocSnapshot.exists()) {
-            const userData = userDocSnapshot.data();
-            setUserEmail(userData.Email);
-            setUserFirstName(userData.FirstName);
-          }
-        } 
-      } catch (error) {
-        console.error("Error fetching user data: ", error);
-      }
-    };
-
-    fetchUserData();
-  }, [productId, fs]);
-
   const handleSubmitReview = async (e) => {
     e.preventDefault();
 
     try {
-      if (!auth.currentUser) {
+      if (!user) {
         console.log("User not logged in.");
         return;
       }
@@ -186,22 +197,32 @@ const ProductInfo = () => {
       console.error("Error submitting review: ", error);
     }
   };
-  const fetchCartTotal = async () => {
-    if (auth.currentUser) {
-      const cartRef = collection(fs, "Carts", auth.currentUser.uid, "products");
-      const cartSnapshot = await getDocs(cartRef);
-      const totalProducts = cartSnapshot.docs.reduce(
-        (acc, doc) => acc + doc.data().qty,
-        0
-      );
-      setTotalProductsInCart(totalProducts);
+  const calculateTotalProductsInCart = async () => {
+    if (user) {
+      try {
+        const cartRef = collection(fs, "Carts", user.uid, "products");
+        const cartSnapshot = await getDocs(cartRef);
+
+        // Count unique product IDs
+        const uniqueProductIds = new Set();
+        cartSnapshot.forEach((doc) => {
+          uniqueProductIds.add(doc.id);
+        });
+
+        setTotalProductsInCart(uniqueProductIds.size);
+      } catch (error) {
+        console.error("Error calculating total products in cart:", error);
+      }
     }
   };
 
   useEffect(() => {
+    calculateTotalProductsInCart();
+  }, [user, clicked]);
+
+  useEffect(() => {
     fetchReviews();
-    fetchCartTotal();
-  }, [productId, fs]);
+  }, [productId, fs, user]);
 
   // Getting cart products
   useEffect(() => {
@@ -220,7 +241,6 @@ const ProductInfo = () => {
               (acc, doc) => acc + doc.data().qty,
               0
             );
-            setTotalProductsInCart(totalProducts);
           }
         });
 
@@ -238,13 +258,14 @@ const ProductInfo = () => {
   }, []);
 
   const addToCart = async () => {
-    if (auth.currentUser) {
-      const cartRef = collection(fs, "Carts", auth.currentUser.uid, "products");
+    if (user) {
+      const cartRef = collection(fs, "Carts", user.uid, "products");
+      setClicked(true);
 
       try {
         const productRef = doc(cartRef, productId);
         const productSnapshot = await getDoc(productRef);
-
+        console.log(clicked);
         if (productSnapshot.exists()) {
           toast.info("This product is already in your cart", {
             position: "top-right",
@@ -284,7 +305,10 @@ const ProductInfo = () => {
       }
     } else {
       // Save the product ID in local storage
-      localStorage.setItem("product", JSON.stringify({id: productId, product}));
+      localStorage.setItem(
+        "product",
+        JSON.stringify({ id: productId, product })
+      );
       toast.info("Product added to cart. Log in to save to your cart.", {
         position: "top-right",
         autoClose: 3000,
@@ -296,15 +320,41 @@ const ProductInfo = () => {
       });
       history.push("/login");
     }
+    setClicked(false);
+  };
+
+  const deleteReview = async (reviewId) => {
+    try {
+      const reviewRef = doc(fs, "Reviews", productId, "ProdReviews", reviewId);
+      await deleteDoc(reviewRef);
+      fetchReviews(); // Refresh the reviews list
+      toast.success("Review deleted successfully", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+      });
+    } catch (error) {
+      console.error("Error deleting review: ", error);
+      toast.error("An error occurred while deleting the review", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+      });
+    }
   };
 
   return (
     <>
       <div>
-        <Navbar
-          user={auth.currentUser}
-          totalProductsInCart={totalProductsInCart}
-        />
+        <Navbar user={user} totalProductsInCart={totalProductsInCart} />
         <div style={containerStyle}>
           {product ? (
             <div style={productDetailsStyle}>
@@ -344,9 +394,13 @@ const ProductInfo = () => {
                 </p>
                 <p style={{ width: "450px" }}>{review.text}</p>
               </div>
-              {auth.currentUser && (
+              {user && user.email === review.email && (
                 <div style={{ width: "100px" }}>
-                  <Button variant="outlined" color="secondary">
+                  <Button
+                    variant="outlined"
+                    color="secondary" 
+                    onClick={() => deleteReview(review.id)}
+                  >
                     <DeleteIcon />
                   </Button>
                 </div>
@@ -354,7 +408,7 @@ const ProductInfo = () => {
             </div>
           ))}
 
-          {auth.currentUser && (
+          {user && (
             <form
               style={{
                 display: "flex",

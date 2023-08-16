@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { fs } from "../Config/Config"; // Import your firestore instance
-import { getDocs,collection } from "firebase/firestore";
+import { fs } from "../../Config/Config"; // Import your firestore instance
+import { getDocs, collection } from "firebase/firestore";
 
 export default function Banner() {
   const [bannerImage, setBannerImage] = useState("");
@@ -10,7 +10,7 @@ export default function Banner() {
       try {
         const bannerCollectionRef = collection(fs, "banner");
         const bannerQuerySnapshot = await getDocs(bannerCollectionRef);
-        
+
         if (!bannerQuerySnapshot.empty) {
           const firstBannerDocSnapshot = bannerQuerySnapshot.docs[0];
           const imageUrl = firstBannerDocSnapshot.data().imageUrl;
@@ -29,17 +29,21 @@ export default function Banner() {
     width: "100%",
     maxHeight: "400px",
     overflow: "hidden",
+    boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.2)",
+    borderRadius: "10px",
   };
 
   const imageStyles = {
     width: "100%",
     height: "100%",
-    objectFit: "cover",
+    objectFit: "cover", // Fit the whole image within the container without cropping
   };
 
   return (
     <div style={bannerStyles}>
-      {bannerImage && <img style={imageStyles} src={bannerImage} alt="Banner" />}
+      {bannerImage && (
+        <img style={imageStyles} src={bannerImage} alt="Banner" />
+      )}
     </div>
   );
 }
