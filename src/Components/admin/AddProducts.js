@@ -27,6 +27,7 @@ export const AddProducts = () => {
   const [imageError, setImageError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [favorite,setFavorite]=useState(false)
 
   // Fetch categories from Firestore when the component mounts
   useEffect(() => {
@@ -149,6 +150,7 @@ export const AddProducts = () => {
                 description,
                 price,
                 imageUrl, // Add the download URL of the image
+                favorite,
               };
 
               // Add the product data to Firestore

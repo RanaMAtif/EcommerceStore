@@ -3,6 +3,9 @@ import Box from "@mui/joy/Box";
 import Sheet from "@mui/joy/Sheet";
 import { fs } from "../../Config/Config";
 import { getDoc, doc } from "firebase/firestore";
+import Typography from "@mui/material/Typography";
+import Divider from "@mui/material/Divider";
+import Checkbox from "@mui/material/Checkbox";
 
 export const SideBar = ({
   selectedCategory,
@@ -111,56 +114,78 @@ export const SideBar = ({
         display: "flex",
         borderRadius: "sm",
         overflow: "auto",
-        position: "absolute",
         bottom: 0,
         left: 0,
-        width: "250px",
-        height: "calc(100vh - 130px)",
         backgroundColor: "#072859",
         color: "white",
-        padding: "20px",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+        transition: "width 0.3s",
       }}
+      style={{ height: "68%" }}
     >
-      <Sheet open>
-        {selectedCategory && (
-          <div>
-            <h2>{selectedCategory}</h2>
-            {subcategories.length > 0 && (
-              <>
-                <h3>Subcategories</h3>
-                {subcategories.map((subcategory) => (
-                  <div key={subcategory}>
-                    <input
-                      type="checkbox"
-                      id={subcategory}
-                      checked={selectedSubcategories.includes(subcategory)}
-                      onChange={() =>
-                        handleSubcategoryCheckboxChange(subcategory)
-                      }
-                    />
-                    <label htmlFor={subcategory}>{subcategory}</label>
-                  </div>
-                ))}
-              </>
-            )}
-            {brands.length > 0 && (
-              <>
-                <h3>Brands</h3>
-                {brands.map((brand) => (
-                  <div key={brand}>
-                    <input
-                      type="checkbox"
-                      id={brand}
-                      checked={selectedBrands.includes(brand)}
-                      onChange={() => handleBrandCheckboxChange(brand)}
-                    />
-                    <label htmlFor={brand}>{brand}</label>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        )}
+      <Sheet>
+        <div
+          style={{
+            padding: "20px",
+            height: "400px",
+            overflowY: "auto",
+            width: "100%",
+            marginTop: "85",
+          }}
+        >
+          {selectedCategory && (
+            <div>
+              <Typography variant="h6" gutterBottom>
+                {selectedCategory}
+              </Typography>
+              <Divider sx={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }} />
+              {subcategories.length > 0 && (
+                <>
+                  <Typography variant="subtitle1" sx={{ marginTop: 2 }}>
+                    Subcategories
+                  </Typography>
+                  {subcategories.map((subcategory) => (
+                    <div key={subcategory} style={{ marginTop: "8px" }}>
+                      <Checkbox
+                        id={subcategory}
+                        checked={selectedSubcategories.includes(subcategory)}
+                        onChange={() =>
+                          handleSubcategoryCheckboxChange(subcategory)
+                        }
+                        color="primary"
+                      />
+                      <label htmlFor={subcategory}>{subcategory}</label>
+                    </div>
+                  ))}
+                </>
+              )}
+              {brands.length > 0 && (
+                <>
+                  <Divider
+                    sx={{
+                      backgroundColor: "rgba(255, 255, 255, 0.12)",
+                      marginTop: 2,
+                    }}
+                  />
+                  <Typography variant="subtitle1" sx={{ marginTop: 2 }}>
+                    Brands
+                  </Typography>
+                  {brands.map((brand) => (
+                    <div key={brand} style={{ marginTop: "8px" }}>
+                      <Checkbox
+                        id={brand}
+                        checked={selectedBrands.includes(brand)}
+                        onChange={() => handleBrandCheckboxChange(brand)}
+                        color="primary"
+                      />
+                      <label htmlFor={brand}>{brand}</label>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </Sheet>
     </Box>
   );

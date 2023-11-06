@@ -7,18 +7,17 @@ import {
   collection,
   getDocs,
   addDoc,
-  onSnapshot,
   deleteDoc,
 } from "firebase/firestore";
-import { fs, auth } from "../../Config/Config";
+import { fs } from "../../Config/Config";
 import { Navbar } from "../navigationBar/Navbar";
 import { Footer } from "../footer/Footer";
 import { Button, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useHistory } from "react-router-dom";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useSelector } from "react-redux";
 
 const footerStyle = {
   position: "fixed",
@@ -33,6 +32,7 @@ const containerStyle = {
   justifyContent: "center",
   alignItems: "flex-start",
   margin: "10px",
+  marginTop: "18%",
 };
 
 const productDetailsStyle = {
@@ -78,42 +78,8 @@ const ProductInfo = () => {
   const [reviews, setReviews] = useState([]);
   const [reviewText, setReviewText] = useState("");
   const [totalProductsInCart, setTotalProductsInCart] = useState(0);
-  const [user, setUser] = useState(null);
   const [clicked, setClicked] = useState(false);
-
-  ////userdata
-  useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      if (authUser) {
-        try {
-          const userDocRef = doc(fs, "users", authUser.uid);
-          const userDocSnapshot = await getDoc(userDocRef);
-
-          if (userDocSnapshot.exists()) {
-            const userData = userDocSnapshot.data();
-            setUser({
-              firstName: userData.FirstName,
-              email: authUser.email,
-              uid: authUser.uid,
-            });
-          } else {
-            console.log(
-              "User document does not exist or is missing required field"
-            );
-            setUser(null);
-          }
-        } catch (error) {
-          console.log("Error fetching user data:", error);
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const user = useSelector((state) => state.user);
 
   const fetchReviews = async () => {
     try {
@@ -170,17 +136,11 @@ const ProductInfo = () => {
       }
 
       // Fetch user data
-      const userDocRef = doc(fs, "users", auth.currentUser.uid);
-      const userDocSnapshot = await getDoc(userDocRef);
 
-      if (userDocSnapshot.exists()) {
-        const userData = userDocSnapshot.data();
-        const userEmail = userData.Email;
-        const userFirstName = userData.FirstName;
-
+      if (user) {
         const reviewData = {
-          email: userEmail,
-          name: userFirstName,
+          email: user.Email,
+          name: user.FirstName,
           text: reviewText,
         };
 
@@ -200,7 +160,7 @@ const ProductInfo = () => {
   const calculateTotalProductsInCart = async () => {
     if (user) {
       try {
-        const cartRef = collection(fs, "Carts", user.uid, "products");
+        const cartRef = collection(fs, "Carts", user.UID, "products");
         const cartSnapshot = await getDocs(cartRef);
 
         // Count unique product IDs
@@ -224,42 +184,9 @@ const ProductInfo = () => {
     fetchReviews();
   }, [productId, fs, user]);
 
-  // Getting cart products
-  useEffect(() => {
-    const auth = getAuth();
-    let sub = true;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const cartRef = collection(fs, "Carts", user.uid, "products");
-
-        // Cart snapshot listener cleanup function
-
-        const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-          if (sub) {
-            const totalProducts = snapshot.docs.reduce(
-              (acc, doc) => acc + doc.data().qty,
-              0
-            );
-          }
-        });
-
-        return () => {
-          sub = false;
-          unsubscribeCart();
-        };
-      }
-    });
-
-    // Return a cleanup function for the auth listener
-    return () => {
-      unsubscribeAuth();
-    };
-  }, []);
-
   const addToCart = async () => {
     if (user) {
-      const cartRef = collection(fs, "Carts", user.uid, "products");
+      const cartRef = collection(fs, "Carts", user.UID, "products");
       setClicked(true);
 
       try {
@@ -354,10 +281,10 @@ const ProductInfo = () => {
   return (
     <>
       <div>
-        <Navbar user={user} totalProductsInCart={totalProductsInCart} />
+        <Navbar totalProductsInCart={totalProductsInCart} />
         <div style={containerStyle}>
           {product ? (
-            <div style={productDetailsStyle}>
+            <div className="test" style={productDetailsStyle}>
               <div style={productImageStyle}>
                 <img
                   src={product.imageUrl}
@@ -394,11 +321,11 @@ const ProductInfo = () => {
                 </p>
                 <p style={{ width: "450px" }}>{review.text}</p>
               </div>
-              {user && user.email === review.email && (
+              {user && user.Email === review.email && (
                 <div style={{ width: "100px" }}>
                   <Button
                     variant="outlined"
-                    color="secondary" 
+                    color="secondary"
                     onClick={() => deleteReview(review.id)}
                   >
                     <DeleteIcon />

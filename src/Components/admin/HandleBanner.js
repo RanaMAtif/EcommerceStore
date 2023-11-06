@@ -91,7 +91,7 @@ export default function HandleBanner() {
   return (
     <div style={{ textAlign: "center", marginTop: "20px" }}>
       <Typography variant="h5" gutterBottom>
-        Change Banner Image
+        Change Main Banner Image
       </Typography>
       <input
         type="file"

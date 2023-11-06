@@ -4,12 +4,11 @@ import {
   collection,
   getDocs,
   onSnapshot,
-  getDoc,
   doc,
   updateDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { getAuth,onAuthStateChanged } from "firebase/auth";
+import { useSelector } from "react-redux";
 import { Navbar } from "../navigationBar/Navbar";
 import { CartProducts } from "./CartProducts";
 import StripeCheckout from "react-stripe-checkout";
@@ -22,12 +21,14 @@ import { Modal } from "./Modal";
 toast.configure();
 
 export const Cart = () => {
-  
   const [showModal, setShowModal] = useState(false);
   const isMounted = useRef(true);
-  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [totalProductsInCart, setTotalProductsInCart] = useState(0);
-  const [clicked,setClicked]=useState(false)
+  const [clicked, setClicked] = useState(false);
+  const history = useHistory();
+  const user = useSelector((state) => state.user);
+
   // trigger modal
   const triggerModal = () => {
     setShowModal(true);
@@ -37,39 +38,6 @@ export const Cart = () => {
   const hideModal = () => {
     setShowModal(false);
   };
-//fetch user data
-  useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      if (authUser) {
-        try {
-          const userDocRef = doc(fs, "users", authUser.uid);
-          const userDocSnapshot = await getDoc(userDocRef);
-
-          if (userDocSnapshot.exists()) {
-            const userData = userDocSnapshot.data();
-            setUser({
-              firstName: userData.FirstName,
-              email: authUser.email,
-              uid: authUser.uid,
-            });
-          } else {
-            console.log(
-              "User document does not exist or is missing required field"
-            );
-            setUser(null);
-          }
-        } catch (error) {
-          console.log("Error fetching user data:", error);
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   // state of cart products
   const [cartProducts, setCartProducts] = useState([]);
@@ -77,7 +45,7 @@ export const Cart = () => {
   const calculateTotalProductsInCart = async () => {
     if (user) {
       try {
-        const cartRef = collection(fs, "Carts", user.uid, "products");
+        const cartRef = collection(fs, "Carts", user.UID, "products");
         const cartSnapshot = await getDocs(cartRef);
 
         // Count unique product IDs
@@ -95,21 +63,14 @@ export const Cart = () => {
 
   useEffect(() => {
     calculateTotalProductsInCart();
-  }, [user,clicked]);
+  }, [user, clicked]);
 
   // getting cart products from firestore collection and updating the state
   // Loading state to indicate data fetching
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    
 
+  useEffect(() => {
     if (user) {
-      const cartCollectionRef = collection(
-        fs,
-        "Carts",
-        user.uid,
-        "products"
-      );
+      const cartCollectionRef = collection(fs, "Carts", user.UID, "products");
       const unsubscribe = onSnapshot(
         cartCollectionRef,
         (querySnapshot) => {
@@ -132,8 +93,8 @@ export const Cart = () => {
       };
     } else {
       setLoading(false); // Set loading to false if user is not authenticated
-    }}
-, [user]);
+    }
+  }, [user]);
 
   // Calculate the total quantity and total price of products in the cart
   const totalQuantity = cartProducts.reduce(
@@ -153,12 +114,9 @@ export const Cart = () => {
     Product.qty = Product.qty + 1;
     Product.TotalProductPrice = Product.qty * Product.price;
 
-    // initializing Firebase
-    const auth = getAuth();
-
     // updating in database
     if (user) {
-      updateDoc(doc(fs, "Carts", user.uid, "products", cartProduct.ID), Product)
+      updateDoc(doc(fs, "Carts", user.UID, "products", cartProduct.ID), Product)
         .then(() => {
           console.log("increment added");
         })
@@ -177,14 +135,11 @@ export const Cart = () => {
       Product.qty = Product.qty - 1;
       Product.TotalProductPrice = Product.qty * Product.price;
 
-
-
-
       // updating in database
-     
+
       if (user) {
         updateDoc(
-          doc(fs, "Carts", user.uid, "products", cartProduct.ID),
+          doc(fs, "Carts", user.UID, "products", cartProduct.ID),
           Product
         )
           .then(() => {
@@ -200,7 +155,7 @@ export const Cart = () => {
   };
 
   // charging payment
-  const history = useHistory();
+
   const handleToken = async (token) => {
     const cart = { name: "All Products", totalPrice };
     try {
@@ -212,7 +167,7 @@ export const Cart = () => {
       const { status } = response.data;
       console.log(status);
       if (status === "success") {
-        history.push("/home");
+        history.push("/");
         toast.success("Your order has been placed successfully", {
           position: "top-right",
           autoClose: 5000,
@@ -248,98 +203,97 @@ export const Cart = () => {
     }
   };
 
-
   const handleProductDelete = async (productId) => {
-    setClicked(true)
+    setClicked(true);
     try {
-      
-      if (user,clicked) {
+      if ((user, clicked)) {
         // Reference to the cart document
-        const cartRef = doc(fs, `Carts/${user.uid}`);
+        const cartRef = doc(fs, `Carts/${user.UID}`);
 
         // Reference to the specific product document within the cart
         const productRef = doc(cartRef, "products", productId);
 
         // Delete the product document
         await deleteDoc(productRef);
-        
       }
     } catch (error) {
       console.error("Error deleting product from cart: ", error);
-      setClicked(false)
+      setClicked(false);
     }
-    setClicked(false)
+    setClicked(false);
   };
   return (
     <>
-      <Navbar user={user} totalProductsInCart={totalProductsInCart} />
+      <Navbar totalProductsInCart={totalProductsInCart} />
       <br />
-      {loading ? (
-        <div>Loading...</div>
-      ) : cartProducts.length > 0 ? (
-        <div className="container-fluid">
-          <h1 style={{ display: "flex", justifyContent: "center" }}>Cart</h1>
-          <div
-            className="products-box cart"
-            style={{
-              width: "100%",
-              marginLeft: "auto",
-              marginRight: "auto",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <CartProducts
-              cartProducts={cartProducts}
-              cartProductIncrease={cartProductIncrease}
-              cartProductDecrease={cartProductDecrease}
-              onProductDeleteSuccess={handleProductDelete}
-            />
-          </div>
-          <div className="summary-box">
-            <h5>Cart Summary</h5>
-            <br />
-            <div>
-              Total No of Products: <span>{totalQuantity}</span>
-            </div>
-            <div>
-              Total Price to Pay: <span>$ {totalPrice}</span>
-            </div>
-            <br />
-            <StripeCheckout
-              stripeKey="pk_test_51NRC5HB19CqeJrhWp5wt638E25qSNjaohB7TJVwURTWvoiz9cYBSOR37e5CsncI7TOVCeyIuJWS3JqtuXS0SbsxH00iAtYudOQ"
-              token={handleToken}
-              billingAddress
-              shippingAddress
-              name="All Products"
-              amount={totalPrice * 100}
-            ></StripeCheckout>
-            <h6 className="text-center" style={{ marginTop: "7px" }}>
-              OR
-            </h6>
-            <button
-              className="btn btn-secondary btn-md"
-              onClick={() => triggerModal()}
+      <div style={{ marginTop: "15%" }}>
+        {loading ? (
+          <div>Loading...</div>
+        ) : cartProducts.length > 0 ? (
+          <div className="container-fluid">
+            <h1 style={{ display: "flex", justifyContent: "center" }}>Cart</h1>
+            <div
+              className="products-box cart"
+              style={{
+                width: "100%",
+                marginLeft: "auto",
+                marginRight: "auto",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
             >
-              Cash on Delivery
-            </button>
+              <CartProducts
+                cartProducts={cartProducts}
+                cartProductIncrease={cartProductIncrease}
+                cartProductDecrease={cartProductDecrease}
+                onProductDeleteSuccess={handleProductDelete}
+              />
+            </div>
+            <div className="summary-box">
+              <h5>Cart Summary</h5>
+              <br />
+              <div>
+                Total No of Products: <span>{totalQuantity}</span>
+              </div>
+              <div>
+                Total Price to Pay: <span>$ {totalPrice}</span>
+              </div>
+              <br />
+              <StripeCheckout
+                stripeKey="pk_test_51NRC5HB19CqeJrhWp5wt638E25qSNjaohB7TJVwURTWvoiz9cYBSOR37e5CsncI7TOVCeyIuJWS3JqtuXS0SbsxH00iAtYudOQ"
+                token={handleToken}
+                billingAddress
+                shippingAddress
+                name="All Products"
+                amount={totalPrice * 100}
+              ></StripeCheckout>
+              <h6 className="text-center" style={{ marginTop: "7px" }}>
+                OR
+              </h6>
+              <button
+                className="btn btn-secondary btn-md"
+                onClick={() => triggerModal()}
+              >
+                Cash on Delivery
+              </button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="container-fluid text-center">
-          <h1>Cart</h1>
-          <h3>No products in the cart.</h3>
-        </div>
-      )}
+        ) : (
+          <div className="container-fluid text-center">
+            <h1>Cart</h1>
+            <h3>No products in the cart.</h3>
+          </div>
+        )}
 
-      {showModal === true && (
-        <Modal
-          TotalPrice={totalPrice}
-          totalQty={totalQuantity}
-          hideModal={hideModal}
-        />
-      )}
+        {showModal === true && (
+          <Modal
+            TotalPrice={totalPrice}
+            totalQty={totalQuantity}
+            hideModal={hideModal}
+          />
+        )}
+      </div>
     </>
   );
 };

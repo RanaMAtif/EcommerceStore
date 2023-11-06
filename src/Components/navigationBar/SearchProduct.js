@@ -36,14 +36,14 @@ export const SearchProduct = () => {
   );
 
   const searchResultsStyle = {
-    position: "absolute",
-    top: "100px", // Adjust this value to match your search input height
-    left: "50",
-    width: "400px", // Equal to the input width
-    backgroundColor: "white",
-    zIndex: "9999",
+    backgroundCcolor: "white",
+    // zIndex: "99",
     padding: "30px",
-    boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.2)",
+
+    boxShadow: "rgba(0, 0, 0, 0.2) 0px 0px 10px",
+    position: "absolute",
+    width: "100%",
+    background: "white",
   };
 
   const searchResultItemStyle = {
@@ -52,44 +52,54 @@ export const SearchProduct = () => {
     alignItems: "center",
     marginBottom: "10px",
     fontWeight: "bold",
+    backgroundCcolor: "white",
     textDecoration: "none",
+    // zIndex: "20",
   };
 
   return (
-    <div className="container">
-      <div style={{ textAlign: "center", marginTop: "20px" }}>
+    <div
+      className="container"
+      style={{
+        padding: "0",
+        position: "fixed",
+        width: "45%",
+        top: "90px",
+      }}
+    >
+      <div>
         <input
           type="text"
           className="form-control"
           placeholder="Search Products"
           value={searchTerm}
           onChange={handleSearchTermChange}
-          style={{ width: "400px" }}
         />
       </div>
-
-      {searchTerm.trim() !== "" && (
-        <div style={searchResultsStyle}>
-          <div className="search-results-content">
-            {filteredProducts.length === 0 ? (
-              <div>No products found.</div>
-            ) : (
-              <div>
-                {filteredProducts.map((product) => (
-                  <Link
-                    to={`/product/${product.id}`}
-                    key={product.id}
-                    style={searchResultItemStyle}
-                  >
-                    <div>{product.brand}</div>
-                    <div>${product.price}</div>
-                  </Link>
-                ))}
-              </div>
-            )}
+      <div>
+        {searchTerm.trim() !== "" && (
+          <div style={searchResultsStyle}>
+            <div className="search-results-content">
+              {filteredProducts.length === 0 ? (
+                <div>No products found.</div>
+              ) : (
+                <div>
+                  {filteredProducts.map((product) => (
+                    <Link
+                      to={`/product/${product.id}`}
+                      key={product.id}
+                      style={searchResultItemStyle}
+                    >
+                      <div>{product.title}</div>
+                      <div>${product.price}</div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

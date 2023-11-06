@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import logo from "../../Images/logo.png";
 import { auth } from "../../Config/Config";
+import { getDoc, doc, collection } from "firebase/firestore";
+import { fs } from "../../Config/Config";
 import { useHistory } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   Button,
   Menu,
@@ -13,16 +15,25 @@ import {
 } from "@mui/material";
 import { ShoppingCart } from "@mui/icons-material";
 import FilterNav from "./FilterNav";
+import FilterNavDropdown from "./FilterNavDropdown";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import { SearchProduct } from "./SearchProduct";
+import MenuList from "./MenuList";
 const adminEmails = {
   "atifranaofficial@gmail.com": true,
 };
 
-export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
+export const Navbar = ({
+  totalProductsInCart,
+  handleCategoryChange,
+  showFilterNavDropdown,
+}) => {
   const history = useHistory();
+  const [logoUrl, setLogoUrl] = useState("");
   const location = useLocation();
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const user = useSelector((state) => state.user);
+
   const handleLogout = () => {
     auth.signOut().then(() => {
       history.push("/login");
@@ -39,40 +50,107 @@ export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
     history.push("/admin");
   };
 
-  const isAdmin = user && adminEmails[user.email?.toLowerCase()];
+  const isAdmin = user && adminEmails[user.Email?.toLowerCase()];
+
+  // Fetch the logo URL from Firestore on component mount
+  //fetchImage
+  const fetchImageURL = async () => {
+    const localStorageKey = "navbar-logo"; // Unique key for logo caching
+    try {
+      // Check if the logo URL is cached in localStorage
+      const cachedLogoUrl = localStorage.getItem(localStorageKey);
+
+      if (cachedLogoUrl) {
+        setLogoUrl(cachedLogoUrl);
+      } else {
+        const docRef = doc(collection(fs, "NavBarLogo"), "Image");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const imageData = docSnap.data();
+          const imageUrl = imageData.imageUrl;
+
+          // Cache the logo URL in localStorage
+          localStorage.setItem(localStorageKey, imageUrl);
+          setLogoUrl(imageUrl);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching image URL:", error);
+    }
+  };
+  useEffect(() => {
+    fetchImageURL();
+  }, []);
 
   return (
-    <>
+    <div
+      className="navbar"
+      style={{
+        display: "flex",
+        paddingleft: "50px",
+        paddingright: "50px",
+        position: "fixed",
+        top: "0px",
+        alignItems: "baseline",
+        zIndex: "1",
+        width: "100%",
+        backgroundColor: "#f6f6f6",
+      }}
+    >
       <div
-        className="navbar"
+        className="menu"
         style={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingLeft: "50px",
-          paddingRight: "50px",
-          p: 2,
-          position: "sticky",
-          top: 0,
-          zIndex: 1000,
+          justifyContent: "center",
+          backgroundColor: "#F6F6F6",
+          width: "100%",
         }}
       >
-        <div className="leftside">
+        <MenuList />
+      </div>
+      <div
+        className="Center Conatainer"
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "center",
+
+          marginTop: "4px",
+        }}
+      >
+        <div style={{ height: "80ps" }} className="leftside">
           <div className="logo">
-            <Link className="navlink" to="/home">
-              <img src={logo} alt="logo" />
+            <Link className="navlink" to="/">
+              {logoUrl ? <img src={logoUrl} alt="logo" /> : <h3>Loading</h3>}
             </Link>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                padding: "10px",
+              }}
+            >
+              {location.pathname === "/" && showFilterNavDropdown && (
+                <FilterNavDropdown
+                  handleCategoryChange={handleCategoryChange}
+                />
+              )}
+            </div>
           </div>
         </div>
 
         <div
-          sx={{
+          className="searchproduct"
+          style={{
+            width: "45%",
             display: "flex",
-            alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <SearchProduct />
+          {location.pathname !== "/contactus" && <SearchProduct />}
         </div>
 
         <div
@@ -80,20 +158,26 @@ export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
           sx={{ display: "flex", alignItems: "center" }}
         >
           {!user ? (
-            <>
-              <div>
+            <div
+              className="rightsideA"
+              style={{ display: "flex", padding: "12px" }}
+            >
+              <div style={{ padding: "10px" }}>
                 <Link className="navlink" to="/signup">
                   SIGN UP
                 </Link>
               </div>
-              <div>
+              <div style={{ padding: "10px" }}>
                 <Link className="navlink" to="/login">
                   LOGIN
                 </Link>
               </div>
-            </>
+            </div>
           ) : (
-            <>
+            <div
+              className="rightsideB"
+              style={{ display: "flex", padding: "12px" }}
+            >
               <div>
                 <Button
                   aria-controls="user-menu"
@@ -102,7 +186,7 @@ export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
                   className="navlink"
                   disableRipple
                 >
-                  <Typography variant="body1">{user.firstName}</Typography>
+                  <Typography variant="body1">{user.FirstName}</Typography>
                 </Button>
                 {isAdmin && ( // Check if the user is an admin before rendering the menu
                   <Menu
@@ -133,7 +217,6 @@ export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
                     </Badge>
                   </IconButton>
                 </Link>
-                {/* <span className="cart-indicator">{totalProductsInCart}</span> */}
               </div>
               <Button
                 onClick={handleLogout}
@@ -146,25 +229,27 @@ export const Navbar = ({ user, totalProductsInCart, handleCategoryChange }) => {
               >
                 LOGOUT
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
-
       <div
+        className="Categories"
         style={{
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          marginTop: "30px",
+          position: "relative ",
+          margin: "auto",
+          marginTop: "-50px",
         }}
       >
         <div>
-          {location.pathname === "/home" && (
+          {location.pathname === "/" && !showFilterNavDropdown && (
             <FilterNav handleCategoryChange={handleCategoryChange} />
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 };

@@ -21,6 +21,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import CancelIcon from "@mui/icons-material/Cancel";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
+import TextField from "@mui/material/TextField";
 
 const IconContainer = styled("div")({
   display: "flex",
@@ -108,6 +109,7 @@ function HandleCarousal() {
   const [selectedImageUrl, setSelectedImageUrl] = useState("");
   const [selectedDeleteImage, setSelectedDeleteImage] = useState("");
   const [selectedDeleteImageUrl, setSelectedDeleteImageUrl] = useState("");
+  const [selectedPosition, setSelectedPosition] = useState(0);
 
   useEffect(() => {
     let sub = true;
@@ -210,114 +212,155 @@ function HandleCarousal() {
 
   return (
     <RootContainer>
-      <Container>
-        <AddContainer>
-          <Typography variant="h6">Add Image</Typography>
-          <UploadContainer>
-            <Input type="file" id="upload-input" onChange={handleImageChange} />
-            <label htmlFor="upload-input">
-              <Tooltip title="Select Image">
-                <IconButton component="span" aria-label="upload image">
-                  <IconStyled />
-                </IconButton>
+      <div
+        className="main"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "80%",
+        }}
+      >
+        <div className="head">
+          <Typography variant="h3">Carousal Settings</Typography>
+        </div>
+        <div
+          className="body"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            flexDirection: "row",
+            marginTop: "10%",
+            width: "100%",
+            borderRadius: "2px",
+            border: "1px solid black",
+          }}
+        >
+          <Container style={{ width: "100%" }}>
+            <AddContainer>
+              <Typography variant="h6">Add Image</Typography>
+              <UploadContainer>
+                <Input
+                  type="file"
+                  id="upload-input"
+                  onChange={handleImageChange}
+                />
+                <label htmlFor="upload-input">
+                  <Tooltip title="Select Image">
+                    <IconButton component="span" aria-label="upload image">
+                      <IconStyled />
+                    </IconButton>
+                  </Tooltip>
+                </label>
+                <Typography variant="body2">
+                  {image ? image.name : "No image selected"}
+                </Typography>
+              </UploadContainer>
+              <Tooltip title="Select the no according to image order you want, the numbering starts from 0 to onwards">
+                <TextField
+                  label="Image Position"
+                  type="number"
+                  value={selectedPosition}
+                  onChange={(e) => setSelectedPosition(e.target.value)}
+                />
               </Tooltip>
-            </label>
-            <Typography variant="body2">
-              {image ? image.name : "No image selected"}
-            </Typography>
-          </UploadContainer>
-          <ImagePreview
-            key={selectedImageUrl}
-            style={{
-              backgroundImage: selectedImageUrl
-                ? `url(${selectedImageUrl})`
-                : "none",
-            }}
-            selected={selectedImage !== ""}
-          />
-          {image && (
-            <IconContainer>
-              <Tooltip title="Upload Image">
-                <IconButton
-                  variant="contained"
-                  onClick={handleAddImage}
-                  aria-label="upload"
-                >
-                  <FileUploadIcon color="success" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Cancel">
-                <IconButton
-                  variant="contained"
-                  onClick={handleCancelAddImage}
-                  aria-label="cancel"
-                >
-                  <CancelIcon color="primary" />
-                </IconButton>
-              </Tooltip>
-            </IconContainer>
-          )}
-        </AddContainer>
-        <Line />
-        <DeleteContainer>
-          <Typography variant="h6">Delete Image</Typography>
-          <Select
-            value={selectedDeleteImage}
-            onChange={(e) => {
-              const imageName = e.target.value;
-              setSelectedDeleteImage(imageName);
-              const storage = getStorage();
-              const imageUrl = ref(storage, `carousel-images/${imageName}`);
-              getDownloadURL(imageUrl)
-                .then((url) => {
-                  setSelectedDeleteImageUrl(url);
-                })
-                .catch((error) => {
-                  console.error("Error retrieving image URL:", error);
-                  setSelectedDeleteImageUrl("");
-                });
-            }}
-          >
-            <MenuItem value="">
-              <em>None</em>
-            </MenuItem>
-            {imagesList.map((imageName) => (
-              <MenuItem key={imageName} value={imageName}>
-                {imageName}
-              </MenuItem>
-            ))}
-          </Select>
-          {selectedDeleteImage && (
-            <>
               <ImagePreview
-                style={{ backgroundImage: `url(${selectedDeleteImageUrl})` }}
-                selected={selectedDeleteImage !== ""}
+                key={selectedImageUrl}
+                style={{
+                  backgroundImage: selectedImageUrl
+                    ? `url(${selectedImageUrl})`
+                    : "none",
+                }}
+                selected={selectedImage !== ""}
               />
-              <IconContainer>
-                <Tooltip title="Delete Image">
-                  <IconButton
-                    variant="contained"
-                    onClick={handleDeleteImage}
-                    disabled={!selectedDeleteImage}
-                    aria-label="delete"
-                  >
-                    <DeleteIcon color="error" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Cancel">
-                  <IconButton
-                    variant="contained"
-                    onClick={handleCancelDeleteImage}
-                    aria-label="cancel"
-                  >
-                    <CancelIcon color="primary" />
-                  </IconButton>
-                </Tooltip>
-              </IconContainer>
-            </>
-          )}
-        </DeleteContainer>
-      </Container>
+              {image && (
+                <IconContainer>
+                  <Tooltip title="Upload Image">
+                    <IconButton
+                      variant="contained"
+                      onClick={handleAddImage}
+                      aria-label="upload"
+                    >
+                      <FileUploadIcon color="success" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Cancel">
+                    <IconButton
+                      variant="contained"
+                      onClick={handleCancelAddImage}
+                      aria-label="cancel"
+                    >
+                      <CancelIcon color="primary" />
+                    </IconButton>
+                  </Tooltip>
+                </IconContainer>
+              )}
+            </AddContainer>
+            <Line />
+            <DeleteContainer>
+              <Typography variant="h6">Delete Image</Typography>
+              <Select
+                value={selectedDeleteImage}
+                onChange={(e) => {
+                  const imageName = e.target.value;
+                  setSelectedDeleteImage(imageName);
+                  const storage = getStorage();
+                  const imageUrl = ref(storage, `carousel-images/${imageName}`);
+                  getDownloadURL(imageUrl)
+                    .then((url) => {
+                      setSelectedDeleteImageUrl(url);
+                    })
+                    .catch((error) => {
+                      console.error("Error retrieving image URL:", error);
+                      setSelectedDeleteImageUrl("");
+                    });
+                }}
+              >
+                <MenuItem value="">
+                  <em>None</em>
+                </MenuItem>
+                {imagesList.map((imageName) => (
+                  <MenuItem key={imageName} value={imageName}>
+                    {imageName}
+                  </MenuItem>
+                ))}
+              </Select>
+              {selectedDeleteImage && (
+                <>
+                  <ImagePreview
+                    style={{
+                      backgroundImage: `url(${selectedDeleteImageUrl})`,
+                    }}
+                    selected={selectedDeleteImage !== ""}
+                  />
+                  <IconContainer>
+                    <Tooltip title="Delete Image">
+                      <IconButton
+                        variant="contained"
+                        onClick={handleDeleteImage}
+                        disabled={!selectedDeleteImage}
+                        aria-label="delete"
+                      >
+                        <DeleteIcon color="error" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Cancel">
+                      <IconButton
+                        variant="contained"
+                        onClick={handleCancelDeleteImage}
+                        aria-label="cancel"
+                      >
+                        <CancelIcon color="primary" />
+                      </IconButton>
+                    </Tooltip>
+                  </IconContainer>
+                </>
+              )}
+            </DeleteContainer>
+          </Container>
+        </div>
+      </div>
     </RootContainer>
   );
 }

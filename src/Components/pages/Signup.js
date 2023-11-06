@@ -14,10 +14,9 @@ import lodsigc from "../../Images/lodsigc.png";
 import logsigd from "../../Images/logsigd.png";
 import logsige from "../../Images/logsige.png";
 import logsigf from "../../Images/logsigf.png";
-import Power from "../../Images/Power.png";
 import { Grid } from "@mui/material";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc } from "firebase/firestore";
 
 const imageUrls = [logsiga, logsigb, lodsigc, logsigd, logsige, logsigf];
 const initialValues = {
@@ -38,7 +37,7 @@ const validation = object({
 
 export const Signup = () => {
   const history = useHistory();
-
+  const [logoUrl, setLogoUrl] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -77,6 +76,23 @@ export const Signup = () => {
         setErrorMsg(error.message);
       });
   };
+
+  const fetchImageURL = async () => {
+    try {
+      const docRef = doc(collection(fs, "SignupLogo"), "Image");
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const imageData = docSnap.data();
+        setLogoUrl(imageData.imageUrl);
+      }
+    } catch (error) {
+      console.error("Error fetching image URL:", error);
+    }
+  };
+  useEffect(() => {
+    fetchImageURL();
+  }, []);
   return (
     <Grid
       sx={{
@@ -110,19 +126,23 @@ export const Signup = () => {
       </Box>
 
       <Box sx={{ flex: 1, p: 0 }}>
-        <img
-          src={Power}
-          alt="Signup"
-          style={{
-            maxWidth: "100%",
-            maxHeight: "100%",
-            objectFit: "contain",
-            display: "flex",
-            marginLeft: "auto",
-            marginRight: "auto",
-            marginBottom: "30px",
-          }}
-        />
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt="PowerLog"
+            style={{
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "contain",
+              marginLeft: "auto",
+              marginRight: "auto",
+              marginBottom: "30px",
+              display: "flex",
+            }}
+          />
+        ) : (
+          <h3>Loading</h3>
+        )}
         <Typography component="h1" variant="h5" align="center">
           Sign Up
         </Typography>

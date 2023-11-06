@@ -65,7 +65,7 @@ export const Modal = ({ TotalPrice, totalQty, hideModal }) => {
 
       // Hide modal and navigate to homepage
       hideModal();
-      history.push("/home");
+      history.push("/");
 
       // Show success toast message
       toast.success("Your order has been placed successfully", {

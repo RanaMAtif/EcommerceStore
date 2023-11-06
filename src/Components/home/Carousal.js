@@ -13,21 +13,31 @@ function Carousal() {
 
   useEffect(() => {
     let sub = true;
-    console.log("mount");
+    const localStorageKey = "carousel-images"; // Unique key for caching
+
     const fetchImages = async () => {
       if (sub) {
         try {
-          const storageRef = ref(storage, "carousel-images");
-          const listResult = await listAll(storageRef);
+          // Check if images are cached in localStorage
+          const cachedImages = localStorage.getItem(localStorageKey);
 
-          const imageUrls = await Promise.all(
-            listResult.items.map(async (item) => {
-              const url = await getDownloadURL(item);
-              return { imgPath: url };
-            })
-          );
+          if (cachedImages) {
+            setImages(JSON.parse(cachedImages));
+          } else {
+            const storageRef = ref(storage, "carousel-images");
+            const listResult = await listAll(storageRef);
 
-          setImages(imageUrls);
+            const imageUrls = await Promise.all(
+              listResult.items.map(async (item) => {
+                const url = await getDownloadURL(item);
+                return { imgPath: url };
+              })
+            );
+
+            // Cache images in localStorage
+            localStorage.setItem(localStorageKey, JSON.stringify(imageUrls));
+            setImages(imageUrls);
+          }
         } catch (error) {
           console.error("Error fetching images from Firebase Storage:", error);
         }
@@ -35,9 +45,9 @@ function Carousal() {
     };
 
     fetchImages();
+
     return () => {
       console.log("unmount");
-
       sub = false;
     };
   }, []);
@@ -49,11 +59,13 @@ function Carousal() {
   return (
     <div
       style={{
-        width : '100%',
-        height : 'auto',
-        display:'flex' ,
-        justifyContent:"center",
-        alignItems :"flex-start"
+        width: "100%",
+        height: "auto",
+        display: "flex",
+        justifyContent: "center",
+        position: "relative",
+        alignItems: "flex-start",
+        marginTop: "18%",
       }}
     >
       <section
@@ -63,14 +75,15 @@ function Carousal() {
           alignItems: "center",
           justifyContent: "center",
           paddingTop: "20px",
-          width : '100%'
+          width: "100%",
         }}
       >
-        <div 
-          style = {{  
-            width: "100%", 
-            height: "auto" 
-          }} >
+        <div
+          style={{
+            width: "100%",
+            height: "auto",
+          }}
+        >
           {images.length > 0 ? (
             <AutoPlaySwipeableViews
               index={activeStep}

@@ -1,23 +1,49 @@
-import * as React from "react";
-import { useState } from "react";
-import footer from "../../Images/footer.png";
+import React, { useState, useEffect } from "react";
+import { useHistory } from "react-router-dom";
 import AspectRatio from "@mui/joy/AspectRatio";
 import Box from "@mui/joy/Box";
-import IconButton from "@mui/joy/IconButton";
 import { Modal } from "@mui/material";
 import Card from "@mui/joy/Card";
 import CardContent from "@mui/joy/CardContent";
 import Divider from "@mui/joy/Divider";
 import List from "@mui/joy/List";
+import IconButton from "@mui/joy/IconButton";
+import SendIcon from "@mui/icons-material/Send";
+import TextField from "@mui/material/TextField";
 import ListSubheader from "@mui/joy/ListSubheader";
 import ListItem from "@mui/joy/ListItem";
-import ListItemButton from "@mui/joy/ListItemButton";
 import Typography from "@mui/joy/Typography";
+import EmailIcon from "@mui/icons-material/Email";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 import Sheet from "@mui/joy/Sheet";
 import FacebookRoundedIcon from "@mui/icons-material/FacebookRounded";
-import GitHubIcon from "@mui/icons-material/GitHub";
-import { ContactUs } from "./ContactUs";
+import InstagramIcon from "@mui/icons-material/Instagram";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { AboutUs } from "./AboutUs";
+import { fs } from "../../Config/Config";
+import { collection, doc, getDoc, addDoc } from "firebase/firestore";
+import { useSelector } from "react-redux";
+
+const emailFieldStyles = {
+  "& .MuiInputLabel-root": {
+    color: "white", // Label text color
+  },
+  "& .MuiOutlinedInput-root": {
+    "& fieldset": {
+      borderColor: "white", // Border color when unfocused
+    },
+    "&:hover fieldset": {
+      borderColor: "white", // Border color when hovered
+    },
+    "&.Mui-focused fieldset": {
+      borderColor: "white", // Border color when focused
+    },
+  },
+  "& .MuiInputBase-input": {
+    color: "white", // Text color
+  },
+};
+
 const modalStyle = {
   position: "absolute",
   top: "50%",
@@ -28,57 +54,120 @@ const modalStyle = {
   boxShadow: 24,
   p: 4,
 };
+
 export const Footer = () => {
-  const [contactUsModalOpen, setContactUsModalOpen] = useState(false);
   const [aboutUsModalOpen, setAboutUsModalOpen] = useState(false);
+  const [subscriberEmail, setSubscriberEmail] = useState("");
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
+  const [cachedFooterImage, setCachedFooterImage] = useState(null);
+  const footer = useSelector((state) => state.footer);
+  const history = useHistory();
 
-  const handleOpenContactUsModal = () => {
-    setContactUsModalOpen(true);
-  };
+  //fetchImage
 
-  const handleCloseContactUsModal = () => {
-    setContactUsModalOpen(false);
+  const fetchImageURL = async () => {
+    const localStorageKey = "footer-image"; // Unique key for image caching
+    try {
+      // Check if the image URL is cached in localStorage
+      const cachedImageUrl = localStorage.getItem(localStorageKey);
+
+      if (cachedImageUrl) {
+        setCachedFooterImage(cachedImageUrl);
+      } else {
+        const docRef = doc(collection(fs, "FooterSettings"), "Image");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const imageData = docSnap.data();
+          const imageUrl = imageData.imageUrl;
+
+          // Cache the image URL in localStorage
+          localStorage.setItem(localStorageKey, imageUrl);
+          // setFooterImage(imageUrl);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching image URL:", error);
+    }
   };
-  const handleOpenAboutUsModal = () => {
-    setAboutUsModalOpen(true);
-  };
+  useEffect(() => {
+    fetchImageURL();
+  }, []);
 
   const handleCloseAboutUsModal = () => {
     setAboutUsModalOpen(false);
   };
+
+  const handleOpenAboutUsModal = () => {
+    setAboutUsModalOpen(true);
+  };
+
+  const handleRedirect = (path) => () => {
+    history.push(path);
+  };
+
+  const handleFacebookClick = () => {
+    if (footer.facebook) {
+      window.open(footer.facebook, "_blank");
+    }
+  };
+
+  const handleInstagramClick = () => {
+    if (footer.instagram) {
+      window.open(footer.instagram, "_blank");
+    }
+  };
+
+  const handleWhatsAppClick = () => {
+    if (footer.whatsapp) {
+      window.open(footer.whatsapp, "_blank");
+    }
+  };
+
+  const handleSubscriberEmailChange = (event) => {
+    setSubscriberEmail(event.target.value);
+  };
+
+  const handleSubscribeClick = async () => {
+    try {
+      const newsletterCollectionRef = collection(fs, "NewsletterEmails");
+      await addDoc(newsletterCollectionRef, { email: subscriberEmail });
+
+      // Open the subscription modal
+      setSubscriptionModalOpen(true);
+
+      // Clear the email input
+      setSubscriberEmail("");
+    } catch (error) {
+      console.error("Error subscribing to newsletter:", error);
+    }
+  };
+
   return (
     <Sheet
       variant="solid"
       color={"primary"}
       invertedColors
       sx={{
-        ...{
-          bgcolor: `${"primary"}.800`,
-        },
         flexGrow: 1,
-        p: 1,
+        p: 2,
         mx: 0,
         my: 0,
-        borderRadius: { xs: 0, sm: "xs" },
+        borderRadius: "8px",
+        backgroundColor: "#37474f",
+        color: "#fff",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <Divider orientation="vertical" />
-        <IconButton variant="plain">
-          <FacebookRoundedIcon />
-        </IconButton>
-        <IconButton variant="plain">
-          <GitHubIcon />
-        </IconButton>
-      </Box>
       <Divider sx={{ my: 2 }} />
       <Box
         sx={{
           display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          alignItems: { md: "flex-start" },
-          justifyContent: "space-between",
-          flexWrap: "wrap",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
           gap: 2,
         }}
       >
@@ -86,22 +175,22 @@ export const Footer = () => {
           variant="soft"
           size="sm"
           sx={{
-            flexDirection: { xs: "row", md: "column" },
-            minWidth: { xs: "100%", md: "auto" },
+            display: "flex",
+            flexDirection: "row",
             gap: 1,
           }}
         >
-          <AspectRatio
-            ratio="20/10"
-            minHeight={80}
-            sx={{ flexBasis: { xs: 200, md: "initial" } }}
-          >
-            <img alt="Powerstore Logo" src={footer} />
+          <AspectRatio minHeight={80} sx={{ flexBasis: 200 }}>
+            {cachedFooterImage ? (
+              <img alt="Powerstore Logo" src={cachedFooterImage} /> // Use the cached image
+            ) : (
+              <h2>Loading</h2> // Fallback if image hasn't loaded yet
+            )}
           </AspectRatio>
           <CardContent>
-            <Typography level="body2">
-              Powerstore where we sell and buy together
-            </Typography>
+            {footer.text && (
+              <Typography level="body2">{footer.text}</Typography>
+            )}
           </CardContent>
         </Card>
         <List
@@ -110,22 +199,82 @@ export const Footer = () => {
           wrap
           sx={{ flexGrow: 0, "--ListItem-radius": "8px" }}
         >
-          <ListItem nested sx={{ width: { xs: "50%", md: 140 } }}>
-            <ListSubheader>Customer Care</ListSubheader>
+          <ListItem nested sx={{ width: "100%" }}>
+            <ListSubheader>Contact Information</ListSubheader>
             <List>
               <ListItem>
-                <ListItemButton onClick={handleOpenContactUsModal}>
-                  Contact us
-                </ListItemButton>
+                <LocationOnIcon />
+                <Typography sx={{ ml: 1 }}>{footer.location}</Typography>
               </ListItem>
               <ListItem>
-                <ListItemButton onClick={handleOpenAboutUsModal}>
-                  About us
-                </ListItemButton>
+                <EmailIcon />
+                <Typography sx={{ ml: 1 }}>{footer.email}</Typography>
+              </ListItem>
+              <ListSubheader>Follow Us</ListSubheader>
+              <ListItem>
+                <FacebookRoundedIcon
+                  onClick={handleFacebookClick}
+                  sx={{ cursor: "pointer" }}
+                />
+                <InstagramIcon
+                  onClick={handleInstagramClick}
+                  sx={{ cursor: "pointer" }}
+                />
+                <WhatsAppIcon
+                  onClick={handleWhatsAppClick}
+                  sx={{ cursor: "pointer" }}
+                />
               </ListItem>
             </List>
           </ListItem>
         </List>
+        <List
+          size="sm"
+          orientation="horizontal"
+          wrap
+          sx={{ flexGrow: 0, "--ListItem-radius": "8px" }}
+        >
+          <ListItem nested sx={{ width: "100%" }}>
+            <ListSubheader>Useful Links</ListSubheader>
+            <List>
+              <ListItem
+                button
+                onClick={handleRedirect("/")}
+                sx={{ cursor: "pointer" }}
+              >
+                <Typography>Home</Typography>
+              </ListItem>
+              <ListItem
+                button
+                onClick={handleRedirect("/contactus")}
+                sx={{ cursor: "pointer" }}
+              >
+                <Typography>Contact Us</Typography>
+              </ListItem>
+              <ListItem
+                button
+                onClick={handleOpenAboutUsModal}
+                sx={{ cursor: "pointer" }}
+              >
+                <Typography>About Us</Typography>
+              </ListItem>
+            </List>
+          </ListItem>
+        </List>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography>Subscribe to Newsletter -{`>`}</Typography>
+          <TextField
+            label="Email"
+            variant="outlined"
+            size="small"
+            value={subscriberEmail}
+            onChange={handleSubscriberEmailChange}
+            sx={emailFieldStyles}
+          />
+          <IconButton color="primary" onClick={handleSubscribeClick}>
+            <SendIcon />
+          </IconButton>
+        </Box>
       </Box>
       <Divider sx={{ my: 2 }} />
       <Box
@@ -147,18 +296,6 @@ export const Footer = () => {
         </Typography>
       </Box>
       <Modal
-        open={contactUsModalOpen}
-        onClose={handleCloseContactUsModal}
-        aria-labelledby="contact-us-modal-title"
-      >
-        <Box sx={{ ...modalStyle, width: "60%" }}>
-          <Typography id="contact-us-modal-title" variant="h6">
-            Contact Us
-          </Typography>
-          <ContactUs onClose={handleCloseContactUsModal} />
-        </Box>
-      </Modal>
-      <Modal
         open={aboutUsModalOpen}
         onClose={handleCloseAboutUsModal}
         aria-labelledby="about-us-modal-title"
@@ -168,6 +305,20 @@ export const Footer = () => {
             About Us
           </Typography>
           <AboutUs onClose={handleCloseAboutUsModal} />
+        </Box>
+      </Modal>
+      <Modal
+        open={subscriptionModalOpen}
+        onClose={() => setSubscriptionModalOpen(false)}
+        aria-labelledby="subscription-modal-title"
+      >
+        <Box sx={{ ...modalStyle, width: "60%" }}>
+          <Typography id="subscription-modal-title" variant="h6">
+            Thank You for Subscribing!
+          </Typography>
+          <Typography>
+            You've successfully subscribed to our newsletter.
+          </Typography>
         </Box>
       </Modal>
     </Sheet>

@@ -1,40 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { AddProducts } from "./AddProducts";
-import HandleCarousal from "./HandleCarousal";
-import { Button, Modal, IconButton } from "@mui/material";
-import { styled } from "@mui/system";
-import CloseIcon from "@mui/icons-material/Close";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import UpdateIcon from "@mui/icons-material/Update";
-import { DeleteProducts } from "./DeleteProducts";
-import { Tooltip } from "@mui/material";
-import { UpdateProducts } from "./UpdateProducts";
+import Box from "@mui/material/Box";
+import Drawer from "@mui/material/Drawer";
+import AppBar from "@mui/material/AppBar";
+import CssBaseline from "@mui/material/CssBaseline";
+import Toolbar from "@mui/material/Toolbar";
+import List from "@mui/material/List";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
-import HandleBanner from "./HandleBanner";
-import HandlePOM from "./HandlePOM";
-import HandleSideBanner from "./HandleSideBanner";
+import Typography from "@mui/material/Typography";
+import { Button } from "@mui/material";
+import { HandleLogin } from "./HandleLogin";
+import { HandleSignup } from "./HandleSignup";
+import HandleFooter from "./HandleFooter";
+import HandleNavBar from "./HandleNavBar";
+import HandleProducts from "./HandleProducts";
+import HandleCarousal from "./HandleCarousal";
+import { useHistory } from "react-router-dom";
+import { styled } from "@mui/system";
 import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { fs } from "../../Config/Config";
-
-const AdminContainer = styled("div")({
-  textAlign: "center",
-  fontFamily: "Comic Sans MS",
-  fontSize: "36px",
-  color: "#0040FF",
-  textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
-  padding: "20px",
-});
-
-const ButtonContainer = styled("div")({
-  display: "flex",
-  flexDirection: "column",
-  gap: "20px",
-  alignItems: "center",
-  justifyContent: "center",
-  marginTop: "20px",
-});
+import HandleSideBanner from "./HandleSideBanner";
+import HandlePOM from "./HandlePOM";
+import HandleBanner from "./HandleBanner";
+import { Home } from "@mui/icons-material";
 
 const ButtonStyled = styled(Button)({
   width: "200px",
@@ -45,13 +33,37 @@ const ButtonStyled = styled(Button)({
     backgroundColor: "#45a049",
   },
 });
+
+const LoginButton = styled(ButtonStyled)({
+  backgroundColor: "#000000", // Set the background color to blue
+  "&:hover": {
+    backgroundColor: "#000000", // Set the background color to a darker blue on hover
+  },
+});
+const SignupButton = styled(ButtonStyled)({
+  backgroundColor: "#000000", // Set the background color to blue
+  "&:hover": {
+    backgroundColor: "#000000", // Set the background color to a darker blue on hover
+  },
+});
+const NavbarButton = styled(ButtonStyled)({
+  backgroundColor: "#000000", // Set the background color to blue
+  "&:hover": {
+    backgroundColor: "#000000", // Set the background color to a darker blue on hover
+  },
+});
+const FooterButton = styled(ButtonStyled)({
+  backgroundColor: "#000000", // Set the background color to blue
+  "&:hover": {
+    backgroundColor: "#000000", // Set the background color to a darker blue on hover
+  },
+});
 const ProductButton = styled(ButtonStyled)({
   backgroundColor: "#007BFF", // Set the background color to blue
   "&:hover": {
     backgroundColor: "#0056b3", // Set the background color to a darker blue on hover
   },
 });
-
 const CarousalButton = styled(ButtonStyled)({
   backgroundColor: "#4CAF50",
   varient: "contained",
@@ -62,14 +74,12 @@ const BannerButton = styled(ButtonStyled)({
     backgroundColor: "#FFA000", // Lighter yellow on hover
   },
 });
-
 const POMButton = styled(ButtonStyled)({
   backgroundColor: "#E57373", // Red for Product of the Month
   "&:hover": {
     backgroundColor: "#D32F2F",
   },
 });
-
 const SideBannerButton = styled(ButtonStyled)({
   backgroundColor: "#9FA8DA", // Purple for Column Carousal
   "&:hover": {
@@ -77,68 +87,20 @@ const SideBannerButton = styled(ButtonStyled)({
   },
 });
 
-// const FlashSaleButton = styled(ButtonStyled)({
-//   backgroundColor: "#81C784", // Green for Flash Sale
-//   "&:hover": {
-//     backgroundColor: "#388E3C",
-//   },
-// });
-
-const ModalContainer = styled("div")({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: "100%",
-  overflowY: "auto",
-});
-
-const ModalContent = styled("div")({
-  backgroundColor: "#ffffff",
-  padding: "20px",
-  borderRadius: "4px",
-  maxWidth: "600px",
-  margin: "auto",
-  position: "relative",
-  display: "flex",
-  flexDirection: "column",
-  gap: "20px",
-  alignItems: "center",
-});
-
-const BigButton = styled(Button)({
-  width: "100%",
-  height: "100px",
-  fontSize: "24px",
-});
-
-const CloseButton = styled(IconButton)({
-  position: "absolute",
-  top: "10px",
-  right: "10px",
-});
+const drawerWidth = 240;
 
 export default function AdminPanel() {
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [isCarousalModalOpen, setIsCarousalModalOpen] = useState(false);
-  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
-  const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] =
-    useState(false);
-  const [isUpdateProductModalOpen, setIsUpdateProductModalOpen] =
-    useState(false);
   const [isCarousalEnabled, setIsCarousalEnabled] = useState(false);
-
   const [isBannerEnabled, setIsBannerEnabled] = useState(false);
-  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
-
+  const history = useHistory();
   const [isPOMEnabled, setIsPOMEnabled] = useState(false);
-  const [isPOMModalOpen, setIsPOMModalOpen] = useState(false);
 
   const [isSideBannerEnabled, setIsSideBannerEnabled] = useState(false);
-  const [isSideBannerModalOpen, setIsSideBannerModalOpen] = useState(false);
+  const [activeComponent, setActiveComponent] = useState(null);
 
-  // const [isFlashSaleEnabled, setIsFlashSaleEnabled] = useState(true);
-  // const [isFlashSaleModalOpen, setIsFlashSaleModalOpen] = useState(false);
-
+  const handleHomeClick = () => {
+    history.push("/");
+  };
   // Fetch the checkbox values from Firestore on component mount
   useEffect(() => {
     const settingsRef = doc(fs, "admin", "settings");
@@ -151,7 +113,6 @@ export default function AdminPanel() {
           setIsBannerEnabled(data.isBannerEnabled);
           setIsPOMEnabled(data.isPOMEnabled);
           setIsSideBannerEnabled(data.isSideBannerEnabled);
-          // setIsFlashSaleEnabled(data.isFlashSaleEnabled);
         }
       })
       .catch((error) => {
@@ -190,44 +151,6 @@ export default function AdminPanel() {
     }
   };
 
-  const handleOpenProductModal = () => {
-    setIsProductModalOpen(true);
-  };
-
-  const handleCloseProductModal = () => {
-    setIsProductModalOpen(false);
-  };
-
-  const handleOpenCarousalModal = () => {
-    setIsCarousalModalOpen(true);
-  };
-
-  const handleCloseCarousalModal = () => {
-    setIsCarousalModalOpen(false);
-  };
-
-  const handleOpenAddProductModal = () => {
-    setIsAddProductModalOpen(true);
-  };
-
-  const handleCloseAddProductModal = () => {
-    setIsAddProductModalOpen(false);
-  };
-  const handleOpenDeleteProductModal = () => {
-    setIsDeleteProductModalOpen(true);
-  };
-
-  const handleCloseDeleteProductModal = () => {
-    setIsDeleteProductModalOpen(false);
-  };
-  const handleOpenUpdateProductModal = () => {
-    setIsUpdateProductModalOpen(true);
-  };
-
-  const handleCloseUpdateProductModal = () => {
-    setIsUpdateProductModalOpen(false);
-  };
-
   const handleCarousalCheckboxChange = (event) => {
     const newValue = event.target.checked;
     setIsCarousalEnabled(newValue);
@@ -239,23 +162,11 @@ export default function AdminPanel() {
     setIsBannerEnabled(newValue);
     updateCheckboxValueInFirestore("isBannerEnabled", newValue);
   };
-  const handleOpenBannerModal = () => {
-    setIsBannerModalOpen(true);
-  };
-  const handleCloseBannerModal = () => {
-    setIsBannerModalOpen(false);
-  };
 
   const handlePOMCheckboxChange = (event) => {
     const newValue = event.target.checked;
     setIsPOMEnabled(newValue);
     updateCheckboxValueInFirestore("isPOMEnabled", newValue);
-  };
-  const handleOpenPOMModal = () => {
-    setIsPOMModalOpen(true);
-  };
-  const handleClosePOMModal = () => {
-    setIsPOMModalOpen(false);
   };
 
   const handleSideBannerCheckboxChange = (event) => {
@@ -263,422 +174,300 @@ export default function AdminPanel() {
     setIsSideBannerEnabled(newValue);
     updateCheckboxValueInFirestore("isSideBannerEnabled", newValue);
   };
-  const handleOpenSideBannerModal = () => {
-    setIsSideBannerModalOpen(true);
-  };
-  const handleCloseSideBannerModal = () => {
-    setIsSideBannerModalOpen(false);
+
+  const openComponent = (componentName) => {
+    setActiveComponent(componentName);
   };
 
-  // const handleFlashSaleCheckboxChange = (event) => {
-  //   const newValue = event.target.checked;
-  //   setIsFlashSaleEnabled(newValue);
-  //   updateCheckboxValueInFirestore("isFlashSaleEnabled", newValue);
-  // };
-  // const handleOpenFlashSaleModal = () => {
-  //   setIsFlashSaleModalOpen(true);
-  // };
-  // const handleCloseFlashSaleModal = () => {
-  //   setIsFlashSaleModalOpen(false);
+  // const closeComponent = () => {
+  //   setActiveComponent(null);
   // };
 
+  const renderComponent = (componentName, component) => {
+    if (activeComponent === componentName) {
+      return <div>{component}</div>;
+    }
+    return null;
+  };
   return (
-    <>
-      <div
-        style={{
-          fontFamily: "Comic Sans MS",
-          fontSize: "36px",
-          color: "#0040FF",
-          textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: "30px",
-          borderBottom: "5px solid #648ccd",
+    <Box sx={{ display: "flex" }}>
+      <CssBaseline />
+      <AppBar
+        position="fixed"
+        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      >
+        <Toolbar
+          style={{
+            justifyContent: "space-evenly",
+            display: "flex",
+            flexDirection: "row",
+            marginLeft: "-42%",
+          }}
+        >
+          <Home onClick={handleHomeClick} style={{cursor:"pointer"}}></Home>
+          <Typography variant="h6" noWrap component="div">
+            Admin Panel
+          </Typography>
+        </Toolbar>
+      </AppBar>
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
         }}
       >
-        <h1>Admin Panel</h1>
-      </div>
-
-      <AdminContainer>
-        <ButtonContainer>
-          <div
-            style={{
-              width: "80%",
-              height: "70px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <ProductButton
-              style={{ width: "75%", height: "40px" }}
-              variant="contained"
-              onClick={handleOpenProductModal}
-            >
-              Product Settings
-            </ProductButton>
-          </div>
-
-          <div
-            style={{
-              width: "60%",
-              height: "auto",
-              padding: "10px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              border: "1px solid #4CAF50",
-              borderRadius: "5px",
-            }}
-          >
-            <CarousalButton
-              variant="contained"
-              onClick={handleOpenCarousalModal}
-              disabled={!isCarousalEnabled}
+        <Toolbar />
+        <Box sx={{ overflow: "auto" }}>
+          <List>
+            <div
               style={{
-                width: "50%",
-                height: "40px",
-                backgroundColor: isCarousalEnabled ? "#4CAF50" : "#999",
-                "&:hover": {
-                  backgroundColor: isCarousalEnabled ? "#45a049" : "#999",
-                },
+                width: "80%",
+                height: "70px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
               }}
             >
-              Carousal Settings
-            </CarousalButton>
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isCarousalEnabled}
-                  size="large"
-                  onChange={handleCarousalCheckboxChange}
-                />
-              }
-              label="Enable Carousal"
-            />
-          </div>
-
-          <div
-            style={{
-              width: "60%",
-              height: "auto",
-              padding: "10px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              border: "1px solid #FFC107",
-              borderRadius: "5px",
-            }}
-          >
-            <BannerButton
-              variant="contained"
-              onClick={handleOpenBannerModal}
-              disabled={!isBannerEnabled}
+              <LoginButton
+                style={{ width: "75%", height: "80%", padding: "10px" }}
+                variant="contained"
+                onClick={() => openComponent("login")}
+              >
+                Login Settings
+              </LoginButton>
+            </div>
+            <div
               style={{
-                width: "50%",
-                height: "40px",
-                backgroundColor: isBannerEnabled ? "#FFC107" : "#999",
-                "&:hover": {
-                  backgroundColor: isBannerEnabled ? "#FFA000" : "#999",
-                },
+                width: "80%",
+                height: "70px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
               }}
             >
-              Banner Settings
-            </BannerButton>
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isBannerEnabled}
-                  size="large"
-                  onChange={handleBannerCheckboxChange}
-                />
-              }
-              label="Enable Banner"
-            />
-          </div>
-
-          <div
-            style={{
-              width: "60%",
-              height: "auto",
-              padding: "10px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              border: "1px solid #E57373",
-              borderRadius: "5px",
-            }}
-          >
-            <POMButton
-              style={{ width: "50%", height: "40px" }}
-              variant="contained"
-              onClick={handleOpenPOMModal}
-              disabled={!isPOMEnabled}
-            >
-              Product of the Month Settings
-            </POMButton>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isPOMEnabled}
-                  size="large"
-                  onChange={handlePOMCheckboxChange}
-                />
-              }
-              label="Enable Product of the Month"
-            />
-          </div>
-
-          <div
-            style={{
-              width: "60%",
-              height: "auto",
-              padding: "10px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              border: "1px solid #9FA8DA",
-              borderRadius: "5px",
-            }}
-          >
-            <SideBannerButton
-              style={{ width: "50%", height: "40px" }}
-              variant="contained"
-              onClick={handleOpenSideBannerModal}
-              disabled={!isSideBannerEnabled}
-            >
-              Side Banner Settings
-            </SideBannerButton>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isSideBannerEnabled}
-                  size="large"
-                  onChange={handleSideBannerCheckboxChange}
-                />
-              }
-              label="Enable SideBanner"
-            />
-          </div>
-
-          {/* <div
-            style={{
-              width: "60%",
-              height: "auto",
-              padding: "10px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              border: "1px solid #81C784",
-              borderRadius: "5px",
-            }}
-          >
-            <FlashSaleButton
-              style={{ width: "50%", height: "40px" }}
-              variant="contained"
-              onClick={handleOpenFlashSaleModal}
-              disabled={!isFlashSaleEnabled}
-            >
-              Flash Sale Settings
-            </FlashSaleButton>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isFlashSaleEnabled}
-                  size="large"
-                  onChange={handleFlashSaleCheckboxChange}
-                />
-              }
-              label="Enable Flash Sale"
-            />
-          </div> */}
-        </ButtonContainer>
-
-        <Modal open={isProductModalOpen} onClose={handleCloseProductModal}>
-          <ModalContainer>
-            <ModalContent>
-              <CloseButton
-                color="inherit"
-                onClick={handleCloseProductModal}
-                size="small"
-              >
-                <CloseIcon />
-              </CloseButton>
-              <BigButton
+              <SignupButton
+                style={{ width: "75%", height: "80%", padding: "10px" }}
                 variant="contained"
-                color="primary"
-                onClick={handleOpenAddProductModal}
+                onClick={() => openComponent("signup")}
               >
-                <AddIcon fontSize="large" />
-                Add Product
-              </BigButton>
-              <BigButton
+                Signup Settings
+              </SignupButton>
+            </div>
+            <div
+              style={{
+                width: "80%",
+                height: "70px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <NavbarButton
+                style={{ width: "75%", height: "80%", padding: "10px" }}
                 variant="contained"
-                color="error"
-                onClick={handleOpenDeleteProductModal}
+                onClick={() => openComponent("navbar")}
               >
-                <DeleteIcon fontSize="large" />
-                Delete Product
-              </BigButton>
-              <BigButton
+                Navigation bar Settings
+              </NavbarButton>
+            </div>
+            <div
+              style={{
+                width: "80%",
+                height: "70px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <FooterButton
+                style={{ width: "75%", height: "80%", padding: "10px" }}
                 variant="contained"
-                color="info"
-                onClick={handleOpenUpdateProductModal}
+                onClick={() => openComponent("footer")}
               >
-                <UpdateIcon fontSize="large" />
-                Update Product
-              </BigButton>
-              <ModalContent>
-                <Tooltip title="Close">
-                  <CloseButton
-                    color="inherit"
-                    onClick={handleCloseProductModal}
-                    size="small"
-                  >
-                    <CloseIcon />
-                  </CloseButton>
-                </Tooltip>
-              </ModalContent>
-              {isAddProductModalOpen && (
-                <Modal
-                  open={isAddProductModalOpen}
-                  onClose={handleCloseAddProductModal}
-                >
-                  <ModalContainer>
-                    <ModalContent>
-                      <CloseButton
-                        color="inherit"
-                        onClick={handleCloseAddProductModal}
-                        size="small"
-                      >
-                        <CloseIcon />
-                      </CloseButton>
-                      <AddProducts />
-                    </ModalContent>
-                  </ModalContainer>
-                </Modal>
-              )}
-              {isDeleteProductModalOpen && (
-                <Modal
-                  open={isDeleteProductModalOpen}
-                  onClose={handleCloseDeleteProductModal}
-                >
-                  <ModalContainer>
-                    <ModalContent>
-                      <CloseButton
-                        color="inherit"
-                        onClick={handleCloseDeleteProductModal}
-                        size="small"
-                      >
-                        <CloseIcon />
-                      </CloseButton>
+                Footer Settings
+              </FooterButton>
+            </div>
+            <div
+              style={{
+                width: "80%",
+                height: "70px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <ProductButton
+                style={{ width: "75%", height: "80%", padding: "10px" }}
+                variant="contained"
+                onClick={() => openComponent("product")}
+              >
+                Product Settings
+              </ProductButton>
+            </div>
 
-                      <DeleteProducts />
-                    </ModalContent>
-                  </ModalContainer>
-                </Modal>
-              )}
-              {isUpdateProductModalOpen && (
-                <Modal
-                  open={isUpdateProductModalOpen}
-                  onClose={handleCloseUpdateProductModal}
-                >
-                  <ModalContainer>
-                    <ModalContent>
-                      <CloseButton
-                        color="inherit"
-                        onClick={handleCloseUpdateProductModal}
-                        size="small"
-                      >
-                        <CloseIcon />
-                      </CloseButton>
-                      <UpdateProducts />
-                    </ModalContent>
-                  </ModalContainer>
-                </Modal>
-              )}
-            </ModalContent>
-          </ModalContainer>
-        </Modal>
+            <div
+              style={{
+                width: "260%",
+                height: "auto",
+                padding: "10px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                border: "1px solid #4CAF50",
+                borderRadius: "5px",
+              }}
+            >
+              <CarousalButton
+                variant="contained"
+                onClick={() => openComponent("carousal")}
+                disabled={!isCarousalEnabled}
+                style={{
+                  width: "50%",
+                  height: "40px",
+                  backgroundColor: isCarousalEnabled ? "#4CAF50" : "#999",
+                  "&:hover": {
+                    backgroundColor: isCarousalEnabled ? "#45a049" : "#999",
+                  },
+                }}
+              >
+                Carousal Settings
+              </CarousalButton>
 
-        <Modal open={isCarousalModalOpen} onClose={handleCloseCarousalModal}>
-          <ModalContainer>
-            <ModalContent>
-              <CloseButton
-                color="inherit"
-                onClick={handleCloseCarousalModal}
-                size="small"
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={isCarousalEnabled}
+                    size="large"
+                    onChange={handleCarousalCheckboxChange}
+                  />
+                }
+                label="Enable Carousal"
+              />
+            </div>
+            <div
+              style={{
+                width: "260%",
+                height: "auto",
+                padding: "10px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                border: "1px solid #FFC107",
+                borderRadius: "5px",
+              }}
+            >
+              <BannerButton
+                variant="contained"
+                onClick={() => openComponent("banner")}
+                disabled={!isBannerEnabled}
+                style={{
+                  width: "50%",
+                  height: "40px",
+                  backgroundColor: isBannerEnabled ? "#FFC107" : "#999",
+                  "&:hover": {
+                    backgroundColor: isBannerEnabled ? "#FFA000" : "#999",
+                  },
+                }}
               >
-                <CloseIcon />
-              </CloseButton>
-              <HandleCarousal />
-            </ModalContent>
-          </ModalContainer>
-        </Modal>
-        <Modal open={isBannerModalOpen} onClose={handleCloseBannerModal}>
-          <ModalContainer>
-            <ModalContent>
-              <CloseButton
-                color="inherit"
-                onClick={handleCloseBannerModal}
-                size="small"
-              >
-                <CloseIcon />
-              </CloseButton>
+                Main Banner Settings
+              </BannerButton>
 
-              <HandleBanner />
-            </ModalContent>
-          </ModalContainer>
-        </Modal>
-        <Modal open={isPOMModalOpen} onClose={handleClosePOMModal}>
-          <ModalContainer>
-            <ModalContent>
-              <CloseButton
-                color="inherit"
-                onClick={handleClosePOMModal}
-                size="small"
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={isBannerEnabled}
+                    size="large"
+                    onChange={handleBannerCheckboxChange}
+                  />
+                }
+                label="Enable Banner"
+              />
+            </div>
+
+            <div
+              style={{
+                width: "260%",
+                height: "auto",
+                padding: "10px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                border: "1px solid #E57373",
+                borderRadius: "5px",
+              }}
+            >
+              <POMButton
+                style={{ width: "50%", height: "40px", padding: "5px" }}
+                variant="contained"
+                onClick={() => openComponent("pom")}
+                disabled={!isPOMEnabled}
               >
-                <CloseIcon />
-              </CloseButton>
-              <HandlePOM />
-            </ModalContent>
-          </ModalContainer>
-        </Modal>
-        <Modal
-          open={isSideBannerModalOpen}
-          onClose={handleCloseSideBannerModal}
-        >
-          <ModalContainer>
-            <ModalContent>
-              <CloseButton
-                color="inherit"
-                onClick={handleCloseSideBannerModal}
-                size="small"
+                Product of the Month Settings
+              </POMButton>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={isPOMEnabled}
+                    size="large"
+                    onChange={handlePOMCheckboxChange}
+                  />
+                }
+                label="Enable Product of the Month"
+              />
+            </div>
+
+            <div
+              style={{
+                width: "260%",
+                height: "auto",
+                padding: "10px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                border: "1px solid #9FA8DA",
+                borderRadius: "5px",
+              }}
+            >
+              <SideBannerButton
+                style={{ width: "50%", height: "40px" }}
+                variant="contained"
+                onClick={() => openComponent("sideBanner")}
+                disabled={!isSideBannerEnabled}
               >
-                <CloseIcon />
-              </CloseButton>
-              <HandleSideBanner />
-            </ModalContent>
-          </ModalContainer>
-        </Modal>
-        {/* <Modal open={isFlashSaleModalOpen} onClose={handleCloseFlashSaleModal}>
-          <ModalContainer>
-            <ModalContent>
-              <CloseButton
-                color="inherit"
-                onClick={handleCloseFlashSaleModal}
-                size="small"
-              >
-                <CloseIcon />
-              </CloseButton>
-              <FlashSale />
-            </ModalContent>
-          </ModalContainer>
-        </Modal> */}
-      </AdminContainer>
-    </>
+                Side Banners Settings
+              </SideBannerButton>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={isSideBannerEnabled}
+                    size="large"
+                    onChange={handleSideBannerCheckboxChange}
+                  />
+                }
+                label="Enable SideBanner"
+              />
+            </div>
+          </List>
+        </Box>
+      </Drawer>
+      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        <Toolbar />
+        {/* //render components here */}
+        {renderComponent("login", <HandleLogin />)}
+        {renderComponent("signup", <HandleSignup />)}
+        {renderComponent("navbar", <HandleNavBar />)}
+        {renderComponent("footer", <HandleFooter />)}
+        {renderComponent("product", <HandleProducts />)}
+        {renderComponent("carousal", <HandleCarousal />)}
+        {renderComponent("banner", <HandleBanner />)}
+        {renderComponent("pom", <HandlePOM />)}
+        {renderComponent("sideBanner", <HandleSideBanner />)}
+      </Box>
+    </Box>
   );
 }
